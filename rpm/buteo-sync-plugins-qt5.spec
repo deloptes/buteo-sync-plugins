@@ -24,6 +24,7 @@ BuildRequires: pkgconfig(contactcache-qt5) >= 0.0.76
 BuildRequires: pkgconfig(libmkcal-qt5)
 BuildRequires: pkgconfig(KF5CalendarCore)
 BuildRequires: pkgconfig(sqlite3)
+BuildRequires: pkgconfig(KF5BluezQt)
 BuildRequires: doxygen
 
 %description
@@ -64,7 +65,7 @@ Summary: Documentation for %{name}
 
 %files doc
 %defattr(-,root,root,-)
-%{_docdir}/sync-app-doc
+%{_docdir}/buteo-sync-plugins-doc
 
 
 %package tests
@@ -98,6 +99,7 @@ Requires: %{name} = %{version}
 %build
 %qmake5 "VERSION=%{version}"
 make %{?_smp_mflags}
+make doc %{_smp_mflags}
 
 
 %install

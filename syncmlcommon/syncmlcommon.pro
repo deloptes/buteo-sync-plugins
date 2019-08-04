@@ -1,10 +1,11 @@
 TEMPLATE = lib
 DEPENDPATH += .
+INCLUDEPATH += .
 
 CONFIG += link_pkgconfig create_pc create_prl
 
 TARGET = syncmlcommon5
-PKGCONFIG = buteosyncfw5 buteosyncml5 Qt5SystemInfo
+PKGCONFIG += buteosyncfw5 buteosyncml5 Qt5SystemInfo KF5BluezQt
 
 QT += sql xml
 QT -= gui

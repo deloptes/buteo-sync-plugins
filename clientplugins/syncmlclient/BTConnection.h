@@ -2,6 +2,7 @@
 * This file is part of buteo-sync-plugins package
 *
 * Copyright (C) 2010 Nokia Corporation. All rights reserved.
+*               2019 Updated to use bluez5 by deloptes@gmail.com
 *
 * Contact: Sateesh Kavuri <sateesh.kavuri@nokia.com>
 *
@@ -35,14 +36,17 @@
 
 #include <QString>
 
+#include <manager.h>
+
 #include <buteosyncml5/OBEXConnection.h>
 
 /*! \brief Class for creating a connection to another device over
  *         Bluetooth for libmeegosyncml
  *
  */
-class BTConnection : public DataSync::OBEXConnection
+class BTConnection : public QObject, public DataSync::OBEXConnection
 {
+    Q_OBJECT
 public:
 
     /*! \brief Constructor
@@ -87,11 +91,18 @@ private:
 
     bool fdRawMode( int aFD );
 
+private slots:
+    /*! \brief Process the result of the initBluez5ManagerJob signal
+     */
+    void initBluez5ManagerJobResult(BluezQt::InitManagerJob*/*job*/);
+
 private:
     QString         iBTAddress;
     QString         iServiceUUID;
     int             iFd;
     QString         iDevice;
+
+    BluezQt::Manager        *btManager;
 
 
 };

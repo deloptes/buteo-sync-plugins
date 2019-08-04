@@ -3,7 +3,7 @@ DEPENDPATH += .
 INCLUDEPATH += . ../../syncmlcommon
 
 CONFIG += link_pkgconfig
-PKGCONFIG = buteosyncfw5 buteosyncml5 Qt5SystemInfo accounts-qt5 libsignon-qt5
+PKGCONFIG = buteosyncfw5 buteosyncml5 Qt5SystemInfo accounts-qt5 libsignon-qt5 KF5BluezQt
 LIBS += -lsyncmlcommon5
 LIBS += -L../../syncmlcommon
 

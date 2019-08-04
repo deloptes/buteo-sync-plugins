@@ -12,6 +12,7 @@
     <profile name="syncml" type="client" >
         <key name="use_wbxml" value="true" />
         <key name="Sync Transport" value="OBEX" />
+        <key name="Sync Direction" value="two-way" />
         <key name="Sync Protocol" value="SyncML11" />
     </profile>
 
