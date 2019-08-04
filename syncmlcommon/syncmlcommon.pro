@@ -1,10 +1,11 @@
 TEMPLATE = lib
 DEPENDPATH += .
+INCLUDEPATH += .
 
 CONFIG += link_pkgconfig create_pc create_prl
 
 TARGET = syncmlcommon5
-PKGCONFIG = buteosyncfw5 buteosyncml5 Qt5SystemInfo
+PKGCONFIG += buteosyncfw5 buteosyncml5 Qt5SystemInfo KF5BluezQt
 
 QT += sql xml
 QT -= gui
@@ -42,8 +43,11 @@ QMAKE_CXXFLAGS = -Wall \
 QMAKE_CLEAN += $(TARGET)
 QMAKE_CLEAN += $(OBJECTS_DIR)/*.gcda $(OBJECTS_DIR)/*.gcno $(OBJECTS_DIR)/*.gcov $(OBJECTS_DIR)/moc_* lib$${TARGET}.prl pkgconfig/*
 
-#install
-target.path = /usr/lib/
+# install
+isEmpty(LIBDIR) {
+    LIBDIR = /usr/lib
+}
+target.path = $${LIBDIR}
 headers.path = /usr/include/syncmlcommon/
 headers.files = ItemAdapter.h \
            ItemIdMapper.h \

@@ -1,4 +1,4 @@
-Name: buteo-sync-plugins-qt5
+Name: buteo-syncml-plugins-qt5
 Version: 0.8.23
 Release: 1
 Summary: Synchronization plugins
@@ -25,6 +25,7 @@ BuildRequires: pkgconfig(contactcache-qt5) >= 0.0.76
 BuildRequires: pkgconfig(libmkcal-qt5)
 BuildRequires: pkgconfig(libkcalcoren-qt5)
 BuildRequires: pkgconfig(sqlite3)
+BuildRequires: pkgconfig(KF5BluezQt)
 BuildRequires: doxygen
 
 %description
@@ -67,7 +68,7 @@ Group: Documentation
 
 %files doc
 %defattr(-,root,root,-)
-%{_docdir}/sync-app-doc
+%{_docdir}/buteo-sync-plugins-doc
 
 
 %package tests
@@ -103,6 +104,7 @@ Requires: %{name} = %{version}
 %build
 %qmake5 "VERSION=%{version}" "CONFIG+=PLUGIN_EXE"
 make %{?_smp_mflags}
+make doc %{_smp_mflags}
 
 
 %install

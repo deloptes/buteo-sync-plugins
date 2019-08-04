@@ -39,6 +39,13 @@ void ContactsChangeNotifier::onContactsAdded(const QList<QContactId>& ids)
     if(ids.count())
     {
         QList<QContact> contacts = iManager->contacts(ids);
+        // @todo update to print if debugging is enabled
+#if 0
+        foreach(QContact contact, contacts)
+        {
+            LOG_DEBUG("Added contact" << contact.displayLabel());
+        }
+#endif
         emit change();
     }
 }

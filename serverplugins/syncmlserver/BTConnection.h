@@ -2,6 +2,7 @@
 * This file is part of buteo-sync-plugins package
 *
 * Copyright (C) 2013 Jolla Ltd. and/or its subsidiary(-ies).
+*               2019 Updated to use bluez5 by deloptes@gmail.com
 *
 * Author: Sateesh Kavuri <sateesh.kavuri@gmail.com>
 *
@@ -25,10 +26,13 @@
 
 #include <QObject>
 #include <QMutex>
-#include <QtDBus>
-#include <QSocketNotifier>
+
+#include <adapter.h>
+#include <manager.h>
 
 #include <buteosyncml5/OBEXConnection.h>
+
+#include "SdpProfile.h"
 
 class BTConnection : public QObject, public DataSync::OBEXConnection
 {
@@ -71,10 +75,18 @@ signals:
     void btConnected (int fd, QString btAddr);
 
 protected slots:
-    
+
     void handleIncomingBTConnection (int fd);
     
+    void handleDisconnectRequest(QString device);
+
     void handleBTError (int fd);
+
+private slots:
+
+    /*! \brief Process the result of the initBluez5ManagerJob signal
+     */
+    void initBluez5ManagerJobResult(BluezQt::InitManagerJob* /*job*/);
 
 private:
     // Functions
@@ -101,14 +113,18 @@ private:
 
     /**
      * ! \brief Method to add service record using Bluez dbus API
+     *  The service records are placed at the object path where this
+     *  application registers in dbus. There is no need to call
+     *  removeServiceRecords explicitly because records are removed
+     *  when the application is stopped
      */
-    bool addServiceRecord (const QByteArray& sdp, quint32& recordId);
-    
+    bool addServiceRecords ();
+
     /**
-     * ! \brief Method to remove service record using Bluez dbus API
+     * ! \brief Method to roll back service record from dbus API
      */
     bool removeServiceRecords ();
-    
+
     /**
      * ! \brief Method to read the service records from file
      */
@@ -129,27 +145,34 @@ private:
     QMutex                  mMutex;
 
     bool                    mDisconnected;
-    
+
     quint32                 mClientServiceRecordId;
-    
+
     quint32                 mServerServiceRecordId;
-    
+
     QSocketNotifier         *mServerReadNotifier;
-    
+
     QSocketNotifier         *mServerWriteNotifier;
 
     QSocketNotifier         *mServerExceptionNotifier;
-    
+
     QSocketNotifier         *mClientReadNotifier;
-    
+
     QSocketNotifier         *mClientWriteNotifier;
-    
+
     QSocketNotifier         *mClientExceptionNotifier;
 
     bool                    mServerFdWatching;
 
     bool                    mClientFdWatching;
-    
+
+    BluezQt::Manager        *btManager;
+
+    SdpProfile              *clientProfile;
+
+    SdpProfile              *serverProfile;
+
+
 };
 
 #endif // BTCONNECTION_H

@@ -1,6 +1,6 @@
 TARGET = syncml-server
 CONFIG += link_pkgconfig
-PKGCONFIG += glib-2.0 buteosyncfw5 buteosyncml5 Qt5SystemInfo
+PKGCONFIG += glib-2.0 buteosyncfw5 buteosyncml5 Qt5SystemInfo KF5BluezQt
 
 INCLUDEPATH += . ../../syncmlcommon
 LIBS += -L../../syncmlcommon
@@ -22,12 +22,14 @@ QMAKE_CLEAN += $(OBJECTS_DIR)/*.gcda $(OBJECTS_DIR)/*.gcno $(OBJECTS_DIR)/*.gcov
 
 SOURCES += SyncMLServer.cpp \
     USBConnection.cpp \
-    BTConnection.cpp
+    BTConnection.cpp  \
+    SdpProfile.cpp
 
 HEADERS += SyncMLServer.h\
     syncmlserver_global.h \
     USBConnection.h \
-    BTConnection.h
+    BTConnection.h \
+    SdpProfile.h
 
 OTHER_FILES += xml/*
 
