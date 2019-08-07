@@ -97,10 +97,10 @@ private slots:
     void initBluez5ManagerJobResult(BluezQt::InitManagerJob*/*job*/);
 
 private:
-    QString         iBTAddress;
-    QString         iServiceUUID;
-    int             iFd;
-    QString         iDevice;
+    QString                 iBTAddress;
+    QString                 iServiceUUID;
+    int                     iFd;
+    QString                 iDevice;
 
     BluezQt::Manager        *btManager;
 
