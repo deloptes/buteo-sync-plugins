@@ -16,4 +16,11 @@
         <key name="Calendar Format" value="icalendar" />
         <key name="Notebook Name" value="Personal" />
     </profile>
+    
+    <!--
+    <profile name="hnotes" type="storage" >    
+        <key name="Local URI" value="./Notepad" />
+        <key name="Target URI" value="./notes" />
+    </profile>
+    -->
 </profile>

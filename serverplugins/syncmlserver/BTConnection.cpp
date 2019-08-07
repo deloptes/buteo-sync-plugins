@@ -100,6 +100,10 @@ BTConnection::~BTConnection ()
         mClientExceptionNotifier = 0;
     }
 
+    if (btManager) {
+        removeServiceRecords ();
+    }
+
     if (serverProfile) {
         delete serverProfile;
         serverProfile = 0;
@@ -471,6 +475,9 @@ void BTConnection::uninit()
 
     // Remove the profiles - profiles are auto removed when app disconnects
     // from dbus, so we disconnect and clean up when BTConnection closes
+
+    removeServiceRecords ();
+
     if (serverProfile) {
         QObject::disconnect (serverProfile, &SdpProfile::incomingBTConnection,
                 this, &BTConnection::handleIncomingBTConnection);
@@ -509,8 +516,9 @@ BTConnection::addServiceRecords ()
 
     // use first adapter and check if profile was already registered
     // if registered we should not try registering once again
-    LOG_DEBUG("[Srvr] adapter " << btManager->adapters().first()->address());
-    LOG_DEBUG("[Srvr] adapter uuids" << btManager->adapters().first()->property("UUIDs").toStringList());
+    BluezQt::AdapterPtr adapter = btManager->adapters().first();
+    LOG_DEBUG("[Srvr] adapter " << adapter->address());
+    LOG_DEBUG("[Srvr] adapter uuids" << adapter->uuids());
 
     QByteArray clientSDP;
     if (!readSRFromFile (CLIENT_BT_SR_FILE, clientSDP)) {
@@ -518,21 +526,21 @@ BTConnection::addServiceRecords ()
     }
 
     clientProfile = new SdpProfile(BluezQt::Profile::ClientRole,QString(clientSDP));
-    if (clientProfile) {
+
+    if (! adapter->uuids().contains(CLIENT_SDP_UUID, Qt::CaseInsensitive)) {
         BluezQt::PendingCall *callCP = btManager->registerProfile(clientProfile);
         callCP->waitForFinished();
 
         if (callCP->error()) {
             LOG_WARNING ("[Srvr]Error registering client profile" << callCP->errorText());
-        } else {
-
-            QObject::connect(clientProfile, &SdpProfile::incomingBTConnection,
-                    this, &BTConnection::handleIncomingBTConnection);
-            QObject::connect(clientProfile, &SdpProfile::disconnectRequest,
-                    this, &BTConnection::handleDisconnectRequest);
-            LOG_DEBUG("[Srvr]Client profile registered");
+            return false;
         }
     }
+    QObject::connect(clientProfile, &SdpProfile::incomingBTConnection,
+            this, &BTConnection::handleIncomingBTConnection);
+    QObject::connect(clientProfile, &SdpProfile::disconnectRequest,
+            this, &BTConnection::handleDisconnectRequest);
+    LOG_DEBUG("[Srvr]Client profile registered");
 
     QByteArray serverSDP;
     if (!readSRFromFile (SERVER_BT_SR_FILE, serverSDP)) {
@@ -540,24 +548,23 @@ BTConnection::addServiceRecords ()
     }
 
     serverProfile = new SdpProfile(BluezQt::Profile::ServerRole,QString(serverSDP));
-    if (serverProfile) {
 
+    if (!adapter->uuids().contains(SERVER_SDP_UUID, Qt::CaseInsensitive)) {
         BluezQt::PendingCall *callSP = btManager->registerProfile(serverProfile);
         callSP->waitForFinished();
-
         if (callSP->error()) {
             LOG_WARNING ("[Srvr]Error registering server profile" << callSP->errorText());
-        } else {
-
-            QObject::connect(serverProfile, &SdpProfile::incomingBTConnection,
-                    this, &BTConnection::handleIncomingBTConnection);
-            QObject::connect(serverProfile, &SdpProfile::disconnectRequest,
-                    this, &BTConnection::handleDisconnectRequest);
-            LOG_DEBUG("[Srvr]Server profile registered");
+            return false;
         }
     }
 
-    return (clientProfile != 0 && serverProfile != 0);
+    QObject::connect(serverProfile, &SdpProfile::incomingBTConnection,
+            this, &BTConnection::handleIncomingBTConnection);
+    QObject::connect(serverProfile, &SdpProfile::disconnectRequest,
+            this, &BTConnection::handleDisconnectRequest);
+    LOG_DEBUG("[Srvr]Server profile registered");
+
+    return true;
 }
 
 bool
@@ -565,28 +572,22 @@ BTConnection::removeServiceRecords ()
 {
     FUNCTION_CALL_TRACE;
 
+    BluezQt::AdapterPtr adapter = btManager->adapters().first();
 
-    if (clientProfile) {
+    if (clientProfile && adapter->uuids().contains(CLIENT_SDP_UUID, Qt::CaseInsensitive)) {
         BluezQt::PendingCall *c1 = btManager->unregisterProfile (clientProfile);
         c1->waitForFinished ();
         if (c1->error() != 0) {
             LOG_WARNING ("[Srvr]Unregister Client profile failed: " << c1->errorText());
         }
-
-        delete clientProfile;
-        clientProfile = 0;
     }
 
-    if (serverProfile) {
+    if (serverProfile && adapter->uuids().contains(SERVER_SDP_UUID, Qt::CaseInsensitive)) {
         BluezQt::PendingCall *c2 = btManager->unregisterProfile (serverProfile);
         c2->waitForFinished ();
         if (c2->error() != 0) {
             LOG_WARNING ("[Srvr]Unregister Server profile failed: " << c2->errorText());
         }
-
-        delete serverProfile;
-        serverProfile = 0;
-
     }
 
     return true;
