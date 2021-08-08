@@ -57,6 +57,8 @@ iReadMgr(NULL), iWriteMgr(NULL), iVCardVer(aVCardVer) //CID 26531
     , iOriginId(originId)
 {
         FUNCTION_CALL_TRACE;
+
+        LOG_DEBUG("Initialized with iSyncTarget " << iSyncTarget);
 }
 
 ContactsBackend::~ContactsBackend()
@@ -69,10 +71,10 @@ bool ContactsBackend::init()
         FUNCTION_CALL_TRACE;
 
         QMap<QString, QString> params;
-        params.insert(QStringLiteral("nonprivileged"), QStringLiteral("true"));
+        params.insert(QStringLiteral("privileged"), QStringLiteral("false"));
         iReadMgr = new QContactManager(QLatin1String("org.nemomobile.contacts.sqlite"), params);
 
-        iWriteMgr = new QContactManager(QLatin1String("org.nemomobile.contacts.sqlite"));
+        iWriteMgr = new QContactManager(QLatin1String("org.nemomobile.contacts.sqlite"), params);
 
         return (iReadMgr != NULL && iWriteMgr != NULL);
 }
@@ -371,6 +373,8 @@ QMap<int , ContactsStatus> ContactsBackend::deleteContacts(const QStringList &aC
 
 void ContactsBackend::prepareContactSave(QList<QContact> *contactList)
 {
+    FUNCTION_CALL_TRACE;
+
     if (!iSyncTarget.isEmpty() || !iOriginId.isEmpty()) {
         for (int i=0; i<contactList->count(); i++) {
             QContact *contact = &((*contactList)[i]);
@@ -513,6 +517,7 @@ void ContactsBackend::getSpecifiedContactIds(const QContactChangeLogFilter::Even
         QList<QString> addedStrIdList;
         foreach (const QContactId& id, addedList) {
             addedStrIdList << id.toString ();
+            LOG_DEBUG("EKO Item IDs: " << id.toString ());
         }
 
         foreach (const QString addedId, addedStrIdList) {
