@@ -58,10 +58,8 @@ bool CalendarBackend::init(const QString& aUid)
     FUNCTION_CALL_TRACE;
 
     LOG_DEBUG("Creating Default Maemo Storage");
-    iNotebookStr = aNotebookName;
 
     iCalendar = mKCal::ExtendedCalendar::Ptr( new mKCal::ExtendedCalendar( QTimeZone::systemTimeZone()) );
-    iCalendar = mKCal::ExtendedCalendar::Ptr( new mKCal::ExtendedCalendar( KDateTime::Spec::LocalZone( ) ));
     iStorage = iCalendar->defaultStorage( iCalendar );
     if (!iStorage->open()) {
         LOG_WARNING("Calendar storage open failed");
