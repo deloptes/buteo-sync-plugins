@@ -27,7 +27,7 @@
 #include <sqlitestorage.h>
 #include <QDir>
 
-#include <LogMacros.h>
+#include "SyncMLPluginLogging.h"
 
 #include "SimpleItem.h"
 
@@ -40,24 +40,24 @@ static const QString INCIDENCE_TYPE_JOURNAL( "Journal" );
 
 NotesBackend::NotesBackend() : iCalendar( 0 ), iStorage( 0 )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 }
 
 NotesBackend::~NotesBackend()
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 }
 
 bool NotesBackend::init( const QString& aNotebookName, const QString& aUid,
                          const QString &aMimeType )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
-    LOG_DEBUG( "Notes backend using notebook" << aNotebookName << "And uuid" << aUid);
+    qCDebug(lcSyncMLPlugin) <<  "Notes backend using notebook" << aNotebookName << "And uuid" << aUid;
 
     if( aNotebookName.isEmpty() )
     {
-        LOG_DEBUG("NoteBook Name to Sync is expected. It Cannot be Empty");
+        qCDebug(lcSyncMLPlugin) << "NoteBook Name to Sync is expected. It Cannot be Empty";
         return false;
     }
 
@@ -66,14 +66,14 @@ bool NotesBackend::init( const QString& aNotebookName, const QString& aUid,
 
     iCalendar = mKCal::ExtendedCalendar::Ptr( new mKCal::ExtendedCalendar(QTimeZone::systemTimeZone()) );
 
-    LOG_DEBUG("Creating Default Maemo Storage for Notes");
+    qCDebug(lcSyncMLPlugin) << "Creating Default Maemo Storage for Notes";
     iStorage = iCalendar->defaultStorage( iCalendar );
 
     bool opened = iStorage->open();
 
     if (!opened)
     {
-        LOG_TRACE("Calendar storage open failed");
+        qCDebug(lcSyncMLPlugin) << "Calendar storage open failed";
     }
 
     mKCal::Notebook::Ptr openedNb;
@@ -89,7 +89,7 @@ bool NotesBackend::init( const QString& aNotebookName, const QString& aUid,
             if (!openedNb.isNull()) {
                 openedNb->setUid(aUid);
                 if (!iStorage->addNotebook(openedNb)) {
-                    LOG_WARNING("Failed to add notebook to storage");
+                    qCWarning(lcSyncMLPlugin) << "Failed to add notebook to storage";
                 }
             }
         }
@@ -97,11 +97,11 @@ bool NotesBackend::init( const QString& aNotebookName, const QString& aUid,
     // If we didn't have an Uid or the creation above failed,
     // we use the default notebook
     if (openedNb.isNull()) {
-        LOG_DEBUG("Using default notebook");
+        qCDebug(lcSyncMLPlugin) << "Using default notebook";
         openedNb = iStorage->defaultNotebook();
         if(openedNb.isNull())
         {
-            LOG_DEBUG("No default notebook exists, creating one");
+            qCDebug(lcSyncMLPlugin) << "No default notebook exists, creating one";
             openedNb = iStorage->createDefaultNotebook();
         }
     }
@@ -109,11 +109,11 @@ bool NotesBackend::init( const QString& aNotebookName, const QString& aUid,
     bool loaded = false;
     if(opened)
     {
-        LOG_DEBUG("Loading all incidences from::" << openedNb->uid());
+        qCDebug(lcSyncMLPlugin) << "Loading all incidences from::" << openedNb->uid();
         loaded = iStorage->loadNotebookIncidences(openedNb->uid());
         if(!loaded)
         {
-            LOG_WARNING("Failed to load calendar");
+            qCWarning(lcSyncMLPlugin) << "Failed to load calendar";
         }
     }
 
@@ -121,20 +121,20 @@ bool NotesBackend::init( const QString& aNotebookName, const QString& aUid,
     {
         iNotebookName = openedNb->uid();
 
-        LOG_DEBUG("Calendar initialized for notes");
+        qCDebug(lcSyncMLPlugin) << "Calendar initialized for notes";
         return true;
     }
     else
     {
-        LOG_WARNING("Not able to initialize calendar");
+        qCWarning(lcSyncMLPlugin) << "Not able to initialize calendar";
 
         iStorage.clear();
 
-        LOG_TRACE("Storage deleted");
+        qCDebug(lcSyncMLPlugin) << "Storage deleted";
 
         iCalendar.clear();
 
-        LOG_TRACE("Calendar deleted");
+        qCDebug(lcSyncMLPlugin) << "Calendar deleted";
 
         return false;
     }
@@ -143,7 +143,7 @@ bool NotesBackend::init( const QString& aNotebookName, const QString& aUid,
 
 bool NotesBackend::uninit()
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     if( iStorage ) {
         iStorage->close();
@@ -161,12 +161,12 @@ bool NotesBackend::uninit()
 bool NotesBackend::getAllNotes( QList<Buteo::StorageItem*>& aItems )
 {
 
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     KCalendarCore::Incidence::List incidences;
 
     if( !iStorage->allIncidences( &incidences, iNotebookName ) ) {
-        LOG_WARNING( "Could not retrieve all notes" );
+        qCWarning(lcSyncMLPlugin) <<  "Could not retrieve all notes";
         return false;
     }
 
@@ -178,12 +178,12 @@ bool NotesBackend::getAllNotes( QList<Buteo::StorageItem*>& aItems )
 
 bool NotesBackend::getAllNoteIds( QList<QString>& aItemIds )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     KCalendarCore::Incidence::List incidences;
 
     if( !iStorage->allIncidences( &incidences, iNotebookName ) ) {
-        LOG_WARNING( "Could not retrieve all notes" );
+        qCWarning(lcSyncMLPlugin) <<  "Could not retrieve all notes";
         return false;
     }
 
@@ -194,12 +194,12 @@ bool NotesBackend::getAllNoteIds( QList<QString>& aItemIds )
 
 bool NotesBackend::getNewNotes( QList<Buteo::StorageItem*>& aNewItems, const QDateTime& aTime )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     KCalendarCore::Incidence::List incidences;
 
     if( !iStorage->insertedIncidences( &incidences, aTime, iNotebookName ) ) {
-        LOG_WARNING( "Could not retrieve new notes" );
+        qCWarning(lcSyncMLPlugin) <<  "Could not retrieve new notes";
         return false;
     }
 
@@ -210,12 +210,12 @@ bool NotesBackend::getNewNotes( QList<Buteo::StorageItem*>& aNewItems, const QDa
 
 bool NotesBackend::getNewNoteIds( QList<QString>& aNewItemIds, const QDateTime& aTime )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     KCalendarCore::Incidence::List incidences;
 
     if( !iStorage->insertedIncidences( &incidences, aTime, iNotebookName ) ) {
-        LOG_WARNING( "Could not retrieve new notes" );
+        qCWarning(lcSyncMLPlugin) <<  "Could not retrieve new notes";
         return false;
     }
 
@@ -226,12 +226,12 @@ bool NotesBackend::getNewNoteIds( QList<QString>& aNewItemIds, const QDateTime& 
 
 bool NotesBackend::getModifiedNotes( QList<Buteo::StorageItem*>& aModifiedItems, const QDateTime& aTime )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     KCalendarCore::Incidence::List incidences;
 
     if( !iStorage->modifiedIncidences( &incidences, aTime, iNotebookName ) ) {
-        LOG_WARNING( "Could not retrieve modified notes" );
+        qCWarning(lcSyncMLPlugin) << "Could not retrieve modified notes";
         return false;
     }
 
@@ -242,12 +242,12 @@ bool NotesBackend::getModifiedNotes( QList<Buteo::StorageItem*>& aModifiedItems,
 
 bool NotesBackend::getModifiedNoteIds( QList<QString>& aModifiedItemIds, const QDateTime& aTime )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     KCalendarCore::Incidence::List incidences;
 
     if( !iStorage->modifiedIncidences( &incidences, aTime, iNotebookName ) ) {
-        LOG_WARNING( "Could not retrieve modified notes" );
+        qCWarning(lcSyncMLPlugin) << "Could not retrieve modified notes";
         return false;
     }
 
@@ -258,12 +258,12 @@ bool NotesBackend::getModifiedNoteIds( QList<QString>& aModifiedItemIds, const Q
 
 bool NotesBackend::getDeletedNoteIds( QList<QString>& aDeletedItemIds, const QDateTime& aTime )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     KCalendarCore::Incidence::List incidences;
 
     if( !iStorage->deletedIncidences( &incidences, aTime, iNotebookName ) ) {
-        LOG_WARNING( "Could not retrieve modified notes" );
+        qCWarning(lcSyncMLPlugin) << "Could not retrieve modified notes";
         return false;
     }
 
@@ -275,20 +275,20 @@ bool NotesBackend::getDeletedNoteIds( QList<QString>& aDeletedItemIds, const QDa
 
 Buteo::StorageItem* NotesBackend::newItem()
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     return new SimpleItem;
 }
 
 Buteo::StorageItem* NotesBackend::getItem( const QString& aItemId )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     iStorage->load ( aItemId );
     KCalendarCore::Incidence::Ptr item = iCalendar->incidence( aItemId );
 
     if( !item ) {
-        LOG_WARNING( "Could not find item:" << aItemId );
+        qCWarning(lcSyncMLPlugin) << "Could not find item:" << aItemId;
         return NULL;
     }
 
@@ -302,12 +302,12 @@ Buteo::StorageItem* NotesBackend::getItem( const QString& aItemId )
 
 bool NotesBackend::addNote( Buteo::StorageItem& aItem, bool aCommitNow )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     QByteArray data;
 
     if( !aItem.read( 0, aItem.getSize(), data ) ) {
-        LOG_WARNING( "Reading item data failed" );
+        qCWarning(lcSyncMLPlugin) << "Reading item data failed";
         return false;
     }
 
@@ -321,14 +321,14 @@ bool NotesBackend::addNote( Buteo::StorageItem& aItem, bool aCommitNow )
     // addJournal() takes ownership of journal -> we cannot delete it
 
     if( !iCalendar->addJournal( journal, iNotebookName ) ) {
-        LOG_WARNING( "Could not add note to calendar" );
+        qCWarning(lcSyncMLPlugin) << "Could not add note to calendar";
         journal.clear();
         return false;
     }
 
     QString id = journal->uid();
 
-    LOG_DEBUG( "New note added, id:" << id );
+    qCDebug(lcSyncMLPlugin) << "New note added, id:" << id;
 
     aItem.setId( id );
 
@@ -346,20 +346,20 @@ bool NotesBackend::addNote( Buteo::StorageItem& aItem, bool aCommitNow )
 
 bool NotesBackend::modifyNote( Buteo::StorageItem& aItem, bool aCommitNow )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     iStorage->load ( aItem.getId() );
     KCalendarCore::Incidence::Ptr item = iCalendar->incidence( aItem.getId() );
 
     if( !item ) {
-        LOG_WARNING( "Could not find item to be modified:" << aItem.getId() );
+        qCWarning(lcSyncMLPlugin) << "Could not find item to be modified:" << aItem.getId();
         return false;
     }
 
     QByteArray data;
 
     if( !aItem.read( 0, aItem.getSize(), data ) ) {
-        LOG_WARNING( "Reading item data failed:" << aItem.getId() );
+        qCWarning(lcSyncMLPlugin) << "Reading item data failed:" << aItem.getId();
         return false;
     }
 
@@ -375,25 +375,25 @@ bool NotesBackend::modifyNote( Buteo::StorageItem& aItem, bool aCommitNow )
         }
     }
 
-    LOG_DEBUG( "Note modified, id:" << aItem.getId() );
+    qCDebug(lcSyncMLPlugin) <<  "Note modified, id:" << aItem.getId();
 
     return true;
 }
 
 bool NotesBackend::deleteNote( const QString& aId, bool aCommitNow )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     iStorage->load ( aId );
     KCalendarCore::Incidence::Ptr journal = iCalendar->incidence( aId );
 
     if( !journal ) {
-        LOG_WARNING( "Could not find item to be deleted:" << aId );
+        qCWarning(lcSyncMLPlugin) << "Could not find item to be deleted:" << aId;
         return false;
     }
 
     if( !iCalendar->deleteIncidence( journal ) ) {
-        LOG_WARNING( "Could not delete note:" << aId );
+        qCWarning(lcSyncMLPlugin) << "Could not delete note:" << aId;
         return false;
     }
 
@@ -419,14 +419,14 @@ bool NotesBackend::commitChanges()
     }
     else
     {
-        LOG_CRITICAL("Couldn't save to storage");
+        qCCritical(lcSyncMLPlugin) << "Couldn't save to storage";
     }
     return saved;
 }
 
 void NotesBackend::retrieveNoteItems( KCalendarCore::Incidence::List& aIncidences, QList<Buteo::StorageItem*>& aItems )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     filterIncidences( aIncidences );
 
@@ -442,7 +442,7 @@ void NotesBackend::retrieveNoteItems( KCalendarCore::Incidence::List& aIncidence
 
 void NotesBackend::retrieveNoteIds( KCalendarCore::Incidence::List& aIncidences, QList<QString>& aIds )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     filterIncidences( aIncidences );
 
@@ -454,7 +454,7 @@ void NotesBackend::retrieveNoteIds( KCalendarCore::Incidence::List& aIncidences,
 
 void NotesBackend::filterIncidences( KCalendarCore::Incidence::List& aIncidences )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     QString journal( INCIDENCE_TYPE_JOURNAL );
 

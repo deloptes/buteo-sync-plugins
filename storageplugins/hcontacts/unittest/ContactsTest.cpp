@@ -29,8 +29,6 @@
 #include <QVersitContactImporter>
 #include <QtTest/QtTest>
 #include <QDebug>
-#include <LogMacros.h>
-#include <Logger.h>
 
 #include "ContactsStorage.h"
 #include "SimpleItem.h"
@@ -62,13 +60,13 @@ static const QByteArray modifiedData(
 // allocate all resources needed here
 void ContactsTest::initTestCase()
 {
-    Buteo::Logger::createInstance();
+//    Buteo::Logger::createInstance();
 }
 
 // de-allocate all resources used
 void ContactsTest::cleanupTestCase()
 {
-    Buteo::Logger::deleteInstance();
+//    Buteo::Logger::deleteInstance();
 }
 
 void ContactsTest::testSuiteSingle()

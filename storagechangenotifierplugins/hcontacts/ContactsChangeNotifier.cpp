@@ -1,5 +1,5 @@
 #include "ContactsChangeNotifier.h"
-#include "LogMacros.h"
+#include "SyncMLPluginLogging.h"
 #include <QList>
 
 const QString DEFAULT_CONTACTS_MANAGER("tracker");
@@ -7,7 +7,7 @@ const QString DEFAULT_CONTACTS_MANAGER("tracker");
 ContactsChangeNotifier::ContactsChangeNotifier() :
 iDisabled(true)
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
     iManager = new QContactManager("org.nemomobile.contacts.sqlite");
 }
 
@@ -35,7 +35,7 @@ void ContactsChangeNotifier::enable()
 
 void ContactsChangeNotifier::onContactsAdded(const QList<QContactId>& ids)
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
     if(ids.count())
     {
         QList<QContact> contacts = iManager->contacts(ids);
@@ -43,7 +43,7 @@ void ContactsChangeNotifier::onContactsAdded(const QList<QContactId>& ids)
 #if 0
         foreach(QContact contact, contacts)
         {
-            LOG_DEBUG("Added contact" << contact.displayLabel());
+            qCDebug(lcSyncMLPlugin) <<  "Added contact" << contact.displayLabel();
         }
 #endif
         emit change();
@@ -52,12 +52,12 @@ void ContactsChangeNotifier::onContactsAdded(const QList<QContactId>& ids)
 
 void ContactsChangeNotifier::onContactsRemoved(const QList<QContactId>& ids)
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
     if(ids.count())
     {
         foreach(QContactId id, ids)
         {
-            LOG_DEBUG("Removed contact with id" << id);
+            qCDebug(lcSyncMLPlugin) <<  "Removed contact with id" << id;
         }
         emit change();
     }
@@ -65,7 +65,7 @@ void ContactsChangeNotifier::onContactsRemoved(const QList<QContactId>& ids)
 
 void ContactsChangeNotifier::onContactsChanged(const QList<QContactId>& ids)
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
     if(ids.count())
     {
         QList<QContact> contacts = iManager->contacts(ids);
@@ -75,7 +75,7 @@ void ContactsChangeNotifier::onContactsChanged(const QList<QContactId>& ids)
 
 void ContactsChangeNotifier::disable()
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
     iDisabled = true;
     QObject::disconnect(iManager, 0, this, 0);
 }

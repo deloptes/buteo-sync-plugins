@@ -21,7 +21,7 @@
  */
 #include "ContactsChangeNotifierPlugin.h"
 #include "ContactsChangeNotifier.h"
-#include "LogMacros.h"
+#include "SyncMLPluginLogging.h"
 #include <QTimer>
 
 using namespace Buteo;
@@ -37,7 +37,7 @@ StorageChangeNotifierPlugin(aStorageName),
 ihasChanges(false),
 iDisableLater(false)
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
     icontactsChangeNotifier = new ContactsChangeNotifier;
     QObject::connect(icontactsChangeNotifier, SIGNAL(change()),
                      this, SLOT(onChange()));
@@ -45,32 +45,32 @@ iDisableLater(false)
 
 ContactsChangeNotifierPlugin::~ContactsChangeNotifierPlugin()
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
     delete icontactsChangeNotifier;
 }
 
 QString ContactsChangeNotifierPlugin::name() const
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
     return iStorageName;
 }
 
 bool ContactsChangeNotifierPlugin::hasChanges() const
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
     return ihasChanges;
 }
 
 void ContactsChangeNotifierPlugin::changesReceived()
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
     ihasChanges = false;
 }
 
 void ContactsChangeNotifierPlugin::onChange()
 {
-    FUNCTION_CALL_TRACE;
-    LOG_DEBUG("Change in contacts detected");
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
+    qCDebug(lcSyncMLPlugin) << "Change in contacts detected";
     ihasChanges = true;
     if(iDisableLater)
     {
@@ -84,14 +84,14 @@ void ContactsChangeNotifierPlugin::onChange()
 
 void ContactsChangeNotifierPlugin::enable()
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
     icontactsChangeNotifier->enable();
     iDisableLater = false;
 }
 
 void ContactsChangeNotifierPlugin::disable(bool disableAfterNextChange)
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
     if(disableAfterNextChange)
     {
         iDisableLater = true;

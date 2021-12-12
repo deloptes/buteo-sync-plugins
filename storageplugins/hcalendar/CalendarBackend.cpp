@@ -24,18 +24,18 @@
 #include "CalendarBackend.h"
 #include <KCalendarCore/Event>
 #include <KCalendarCore/Journal>
-#include <LogMacros.h>
+#include "SyncMLPluginLogging.h"
 #include <QDir>
-#include <QDebug>
+//#include <QDebug>
 
 CalendarBackend::CalendarBackend() : iCalendar( 0 ), iStorage( 0 )
 {
-	FUNCTION_CALL_TRACE;
+	FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 }
 
 CalendarBackend::~CalendarBackend()
 {
-	FUNCTION_CALL_TRACE;
+	FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 }
 
 namespace {
@@ -48,21 +48,21 @@ namespace {
                 return nb;
             }
         }
-        LOG_WARNING("No default local calendar notebook found!");
+        qCWarning(lcSyncMLPlugin) << "No default local calendar notebook found!";
         return mKCal::Notebook::Ptr();
     }
 }
 
 bool CalendarBackend::init(const QString& aUid)
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
-    LOG_DEBUG("Creating Default Maemo Storage");
+    qCDebug(lcSyncMLPlugin) << "Creating Default Maemo Storage";
 
     iCalendar = mKCal::ExtendedCalendar::Ptr( new mKCal::ExtendedCalendar( QTimeZone::systemTimeZone()) );
     iStorage = iCalendar->defaultStorage( iCalendar );
     if (!iStorage->open()) {
-        LOG_WARNING("Calendar storage open failed");
+        qCWarning(lcSyncMLPlugin) << "Calendar storage open failed";
         iStorage.clear();
         iCalendar.clear();
         return false;
@@ -73,7 +73,7 @@ bool CalendarBackend::init(const QString& aUid)
     if (!aUid.isEmpty()) {
         openedNb = iStorage->notebook(aUid);
         if (!openedNb) {
-            LOG_WARNING("Invalid notebook UID specified:" << aUid << "- aborting sync");
+            qCWarning(lcSyncMLPlugin) << "Invalid notebook UID specified:" << aUid << "- aborting sync";
             iStorage.clear();
             iCalendar.clear();
             return false;
@@ -84,7 +84,7 @@ bool CalendarBackend::init(const QString& aUid)
         // TODO: find out why we don't use the defaultNotebook here!
         openedNb = defaultLocalCalendarNotebook(iStorage);
         if (!openedNb) {
-            LOG_WARNING("Unable to open the default local notebook for sync - aborting");
+            qCWarning(lcSyncMLPlugin) << "Unable to open the default local notebook for sync - aborting";
             iStorage.clear();
             iCalendar.clear();
             return false;
@@ -92,32 +92,32 @@ bool CalendarBackend::init(const QString& aUid)
     }
 
     if (!iStorage->loadNotebookIncidences(openedNb->uid())) {
-        LOG_WARNING("Not able to initialize calendar");
+        qCWarning(lcSyncMLPlugin) << "Not able to initialize calendar";
         iStorage.clear();
         iCalendar.clear();
         return false;
     }
 
     iNotebookStr = openedNb->uid();
-    LOG_DEBUG("Calendar initialized, opened notebook:" << openedNb->uid() << openedNb->name());
+    qCDebug(lcSyncMLPlugin) << "Calendar initialized, opened notebook:" << openedNb->uid() << openedNb->name();
     return true;
 }
 
 bool CalendarBackend::uninit()
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     if( iStorage ) {
-        LOG_TRACE("Closing calendar storage...");
+        qCDebug(lcSyncMLPlugin) << "Closing calendar storage...";
         iStorage->close();
-        LOG_TRACE("Done");
+        qCDebug(lcSyncMLPlugin) << "Done";
         iStorage.clear();
     }
 
     if( iCalendar ) {
-        LOG_TRACE("Closing calendar...");
+        qCDebug(lcSyncMLPlugin) << "Closing calendar...";
         iCalendar->close();
-        LOG_TRACE("Done");
+        qCDebug(lcSyncMLPlugin) << "Done";
         iCalendar.clear();
     }
 
@@ -126,14 +126,14 @@ bool CalendarBackend::uninit()
 
 bool CalendarBackend::getAllIncidences( KCalendarCore::Incidence::List& aIncidences )
 {
-	FUNCTION_CALL_TRACE;
+	FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
 	if( !iStorage ) {
 	    return false;
 	}
 
 	if( !iStorage->allIncidences( &aIncidences, iNotebookStr ) ) {
-        LOG_WARNING("Error Retrieving ALL Incidences from the  Storage ");
+        qCWarning(lcSyncMLPlugin) << "Error Retrieving ALL Incidences from the  Storage ";
         return false;
 	}
 
@@ -143,14 +143,14 @@ bool CalendarBackend::getAllIncidences( KCalendarCore::Incidence::List& aInciden
 
 void CalendarBackend::filterIncidences(KCalendarCore::Incidence::List& aList)
 {
-	FUNCTION_CALL_TRACE;
+	FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 	QString event(INCIDENCE_TYPE_EVENT);
 	QString todo(INCIDENCE_TYPE_TODO);
 
 	for (int i = 0; i < aList.size(); ++i) {
         KCalendarCore::Incidence::Ptr incidence = aList.at(i);
         if ((incidence->type() != KCalendarCore::Incidence::TypeEvent) && (incidence->type() != KCalendarCore::Incidence::TypeTodo)) {
-	        LOG_DEBUG("Removing incidence type" << incidence->typeStr());
+            qCDebug(lcSyncMLPlugin) << "Removing incidence type" << incidence->typeStr();
                 aList.remove( i, 1);
 		incidence.clear();
 	    }
@@ -159,14 +159,14 @@ void CalendarBackend::filterIncidences(KCalendarCore::Incidence::List& aList)
 
 bool CalendarBackend::getAllNew( KCalendarCore::Incidence::List& aIncidences, const QDateTime& aTime )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     if( !iStorage ) {
         return false;
     }
 
     if( !iStorage->insertedIncidences( &aIncidences, aTime, iNotebookStr) ) {
-        LOG_WARNING("Error Retrieving New Incidences from the Storage" );
+        qCWarning(lcSyncMLPlugin) << "Error Retrieving New Incidences from the Storage" ;
         return false;
     }
 
@@ -176,14 +176,14 @@ bool CalendarBackend::getAllNew( KCalendarCore::Incidence::List& aIncidences, co
 
 bool CalendarBackend::getAllModified( KCalendarCore::Incidence::List& aIncidences, const QDateTime& aTime )
 {
-	FUNCTION_CALL_TRACE;
+	FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     if( !iStorage ) {
         return false;
     }
 
     if( !iStorage->modifiedIncidences( &aIncidences, aTime, iNotebookStr ) ) {
-        LOG_WARNING(" Error retrieving modified Incidences ");
+        qCWarning(lcSyncMLPlugin) << " Error retrieving modified Incidences ";
         return false;
     }
 
@@ -193,14 +193,14 @@ bool CalendarBackend::getAllModified( KCalendarCore::Incidence::List& aIncidence
 
 bool CalendarBackend::getAllDeleted( KCalendarCore::Incidence::List& aIncidences, const QDateTime& aTime )
 {
-	FUNCTION_CALL_TRACE;
+	FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     if( !iStorage ) {
         return false;
     }
 
     if( !iStorage->deletedIncidences( &aIncidences, aTime, iNotebookStr ) ) {
-        LOG_WARNING(" Error retrieving deleted Incidences ");
+        qCWarning(lcSyncMLPlugin) << " Error retrieving deleted Incidences ";
         return false;
     }
 
@@ -210,7 +210,7 @@ bool CalendarBackend::getAllDeleted( KCalendarCore::Incidence::List& aIncidences
 
 KCalendarCore::Incidence::Ptr CalendarBackend::getIncidence( const QString& aUID )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     QStringList iDs = aUID.split(ID_SEPARATOR);
     KCalendarCore::Incidence::Ptr incidence;
@@ -226,7 +226,7 @@ KCalendarCore::Incidence::Ptr CalendarBackend::getIncidence( const QString& aUID
 
 QString CalendarBackend::getVCalString(KCalendarCore::Incidence::Ptr aInci)
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     Q_ASSERT( aInci );
 
@@ -240,7 +240,7 @@ QString CalendarBackend::getVCalString(KCalendarCore::Incidence::Ptr aInci)
         vcal = vcf.toString(tempCalendar);
     }
     else {
-    	LOG_WARNING("Error Cloning the Incidence for VCal String");
+    	qCWarning(lcSyncMLPlugin) << "Error Cloning the Incidence for VCal String";
     }
 
     return vcal;
@@ -248,7 +248,7 @@ QString CalendarBackend::getVCalString(KCalendarCore::Incidence::Ptr aInci)
 
 QString CalendarBackend::getICalString(KCalendarCore::Incidence::Ptr aInci)
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     Q_ASSERT( aInci );
 
@@ -262,7 +262,7 @@ QString CalendarBackend::getICalString(KCalendarCore::Incidence::Ptr aInci)
 	ical = icf.toString(tempCalendar);
     }
     else {
-    	LOG_WARNING("Error Cloning the Incidence for Ical String");
+    	qCWarning(lcSyncMLPlugin) << "Error Cloning the Incidence for Ical String";
     }
 
     return ical;
@@ -270,7 +270,7 @@ QString CalendarBackend::getICalString(KCalendarCore::Incidence::Ptr aInci)
 
 KCalendarCore::Incidence::Ptr CalendarBackend::getIncidenceFromVcal( const QString& aVString )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     KCalendarCore::Incidence::Ptr pInci;
 
@@ -283,14 +283,14 @@ KCalendarCore::Incidence::Ptr CalendarBackend::getIncidenceFromVcal( const QStri
         pInci = KCalendarCore::Incidence::Ptr ( lst[0]->clone() );
     }
     else {
-        LOG_WARNING("VCal to Incidence Conversion Failed ");
+        qCWarning(lcSyncMLPlugin) << "VCal to Incidence Conversion Failed ";
     }
     return pInci;
 }
 
 KCalendarCore::Incidence::Ptr CalendarBackend::getIncidenceFromIcal( const QString& aIString )
 {
-	FUNCTION_CALL_TRACE;
+	FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     KCalendarCore::Incidence::Ptr pInci;
 
@@ -302,7 +302,7 @@ KCalendarCore::Incidence::Ptr CalendarBackend::getIncidenceFromIcal( const QStri
     if(!lst.isEmpty()) {
         pInci = KCalendarCore::Incidence::Ptr ( lst[0]->clone() );
     } else {
-    	LOG_WARNING("ICal to Incidence Conversion Failed ");
+    	qCWarning(lcSyncMLPlugin) << "ICal to Incidence Conversion Failed ";
     }
 
     return pInci;
@@ -310,7 +310,7 @@ KCalendarCore::Incidence::Ptr CalendarBackend::getIncidenceFromIcal( const QStri
 
 bool CalendarBackend::addIncidence( KCalendarCore::Incidence::Ptr aInci, bool commitNow )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     if( !iCalendar || !iStorage ) {
         return false;
@@ -323,7 +323,7 @@ bool CalendarBackend::addIncidence( KCalendarCore::Incidence::Ptr aInci, bool co
                 KCalendarCore::Event::Ptr event = aInci.staticCast<KCalendarCore::Event>();
                 if(!iCalendar->addEvent(event, iNotebookStr))
                 {
-                    LOG_WARNING("Could not add event");
+                    qCWarning(lcSyncMLPlugin) << "Could not add event";
                     return false;
                 }
             }
@@ -333,13 +333,13 @@ bool CalendarBackend::addIncidence( KCalendarCore::Incidence::Ptr aInci, bool co
                 KCalendarCore::Todo::Ptr todo = aInci.staticCast<KCalendarCore::Todo>();
                 if(!iCalendar->addTodo(todo, iNotebookStr))
                 {
-                    LOG_WARNING("Could not add todo");
+                    qCWarning(lcSyncMLPlugin) << "Could not add todo";
                     return false;
                 }
             }
             break;
         default:
-            LOG_WARNING("Could not add incidence, wrong type" << aInci->type());
+            qCWarning(lcSyncMLPlugin) << "Could not add incidence, wrong type" << aInci->type();
             return false;
     }
     
@@ -350,40 +350,40 @@ bool CalendarBackend::addIncidence( KCalendarCore::Incidence::Ptr aInci, bool co
     if( commitNow )  {
         if( !iStorage->save() )
         {
-            LOG_WARNING( "Could not commit changes to calendar");
+            qCWarning(lcSyncMLPlugin) << "Could not commit changes to calendar";
             return false;
         }
-        LOG_DEBUG( "Single incidence committed");
+        qCDebug(lcSyncMLPlugin) << "Single incidence committed";
     }
 
-    LOG_DEBUG("Added an item with UID : " << aInci->uid() << "Recurrence Id :" << aInci->recurrenceId().toString());
+    qCDebug(lcSyncMLPlugin) << "Added an item with UID : " << aInci->uid() << "Recurrence Id :" << aInci->recurrenceId().toString();
 
     return true;
 }
 
 bool CalendarBackend::commitChanges()
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
     bool changesCommitted = false;
 
     if( !iStorage )
     {
-        LOG_WARNING("No calendar storage!");
+        qCWarning(lcSyncMLPlugin) << "No calendar storage!";
     }
     else if( iStorage->save() )  {
-        LOG_DEBUG( "Committed changes to calendar");
+        qCDebug(lcSyncMLPlugin) << "Committed changes to calendar";
         changesCommitted = true;
     }
     else
     {
-        LOG_DEBUG( "Could not commit changes to calendar");
+        qCDebug(lcSyncMLPlugin) << "Could not commit changes to calendar";
     }
     return changesCommitted;
 }
 
 bool CalendarBackend::modifyIncidence( KCalendarCore::Incidence::Ptr aInci, const QString& aUID, bool commitNow )
 {
-	FUNCTION_CALL_TRACE;
+	FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     if( !iCalendar || !iStorage ) {
         return false;
@@ -392,22 +392,22 @@ bool CalendarBackend::modifyIncidence( KCalendarCore::Incidence::Ptr aInci, cons
     KCalendarCore::Incidence::Ptr origInci = getIncidence ( aUID );
 
     if( !origInci ) {
-        LOG_WARNING("Item with UID" << aUID << "does not exist. Cannot modify");
+        qCWarning(lcSyncMLPlugin) << "Item with UID" << aUID << "does not exist. Cannot modify";
         return false;
     }
 
     if( !modifyIncidence( origInci, aInci ) ) {
-        LOG_WARNING( "Could not make modifications to incidence" );
+        qCWarning(lcSyncMLPlugin) << "Could not make modifications to incidence";
         return false;
     }
 
     if( commitNow )  {
         if( !iStorage->save() )
         {
-            LOG_WARNING( "Could not commit changes to calendar");
+            qCWarning(lcSyncMLPlugin) << "Could not commit changes to calendar";
             return false;
         }
-        LOG_DEBUG( "Single incidence committed");
+        qCDebug(lcSyncMLPlugin) << "Single incidence committed";
     }
 
     return true;
@@ -415,7 +415,7 @@ bool CalendarBackend::modifyIncidence( KCalendarCore::Incidence::Ptr aInci, cons
 
 CalendarBackend::ErrorStatus CalendarBackend::deleteIncidence( const QString& aUID )
 {
-	FUNCTION_CALL_TRACE;
+	FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
     CalendarBackend::ErrorStatus errorCode = CalendarBackend::STATUS_OK;
 
     if( !iCalendar || !iStorage ) {
@@ -425,18 +425,18 @@ CalendarBackend::ErrorStatus CalendarBackend::deleteIncidence( const QString& aU
     KCalendarCore::Incidence::Ptr incidence = getIncidence( aUID );
     
     if( !incidence ) {
-        LOG_WARNING( "Could not find incidence to delete with UID" << aUID );
+        qCWarning(lcSyncMLPlugin) << "Could not find incidence to delete with UID" << aUID;
         errorCode = CalendarBackend::STATUS_ITEM_NOT_FOUND;
     }
 
     if( !iCalendar->deleteIncidence( incidence) )
     {
-        LOG_WARNING( "Could not delete incidence with UID" << aUID );
+        qCWarning(lcSyncMLPlugin) << "Could not delete incidence with UID" << aUID;
         errorCode = CalendarBackend::STATUS_GENERIC_ERROR;
     }
 
     if( !iStorage->save() ) {
-        LOG_WARNING( "Could not commit changes to calendar");
+        qCWarning(lcSyncMLPlugin) << "Could not commit changes to calendar";
         errorCode =  CalendarBackend::STATUS_GENERIC_ERROR;
     }
 
@@ -445,7 +445,7 @@ CalendarBackend::ErrorStatus CalendarBackend::deleteIncidence( const QString& aU
 
 bool CalendarBackend::modifyIncidence( KCalendarCore::Incidence::Ptr aIncidence, KCalendarCore::Incidence::Ptr aIncidenceData )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     Q_ASSERT( aIncidence );
     Q_ASSERT( aIncidenceData );
@@ -455,7 +455,7 @@ bool CalendarBackend::modifyIncidence( KCalendarCore::Incidence::Ptr aIncidence,
     aIncidenceData->setCreated( aIncidence->created() );
 
     if( aIncidence->type() != aIncidenceData->type() ) {
-        LOG_WARNING( "Expected incidence type" << aIncidence->typeStr() <<", got" << aIncidenceData->typeStr() );
+        qCWarning(lcSyncMLPlugin) << "Expected incidence type" << aIncidence->typeStr() <<", got" << aIncidenceData->typeStr();
         return false;
     }
 
@@ -466,7 +466,7 @@ bool CalendarBackend::modifyIncidence( KCalendarCore::Incidence::Ptr aIncidence,
         *inc = *data;    
     }
     else {
-        LOG_WARNING( "Unsupported incidence type:" << aIncidence->typeStr() );
+        qCWarning(lcSyncMLPlugin) << "Unsupported incidence type:" << aIncidence->typeStr();
         return false;
     }
 

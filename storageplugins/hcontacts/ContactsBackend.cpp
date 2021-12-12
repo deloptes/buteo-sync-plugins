@@ -30,7 +30,7 @@
 #include <seasideimport.h>
 #include <seasidepropertyhandler.h>
 
-#include <LogMacros.h>
+#include "SyncMLPluginLogging.h"
 
 #include <QVersitContactExporter>
 #include <QVersitContactImporter>
@@ -56,17 +56,17 @@ iReadMgr(NULL), iWriteMgr(NULL), iVCardVer(aVCardVer) //CID 26531
     , iSyncTarget(syncTarget)
     , iOriginId(originId)
 {
-        FUNCTION_CALL_TRACE;
+        FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 }
 
 ContactsBackend::~ContactsBackend()
 {
-        FUNCTION_CALL_TRACE;
+        FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 }
 
 bool ContactsBackend::init()
 {
-        FUNCTION_CALL_TRACE;
+        FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
         QMap<QString, QString> params;
         params.insert(QStringLiteral("nonprivileged"), QStringLiteral("true"));
@@ -79,7 +79,7 @@ bool ContactsBackend::init()
 
 bool ContactsBackend::uninit()
 {
-        FUNCTION_CALL_TRACE;
+        FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
         delete iReadMgr;
         iReadMgr = NULL;
@@ -94,13 +94,13 @@ bool ContactsBackend::uninit()
 
 QList<QContactLocalId> ContactsBackend::getAllContactIds()
 {
-        FUNCTION_CALL_TRACE;
+        FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
     QList<QContactLocalId> contactIDs;
 
     if (iReadMgr != NULL) {
         contactIDs = iReadMgr->contactIds();
     } else {
-        LOG_WARNING("Contacts backend not available");
+        qCWarning(lcSyncMLPlugin) << "Contacts backend not available";
     }
 
     return contactIDs;
@@ -108,9 +108,9 @@ QList<QContactLocalId> ContactsBackend::getAllContactIds()
 
 QList<QContactLocalId> ContactsBackend::getAllNewContactIds(const QDateTime &aTimeStamp)
 {
-        FUNCTION_CALL_TRACE;
+        FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
-        LOG_DEBUG("Retrieve New Contacts Since " << aTimeStamp);
+        qCDebug(lcSyncMLPlugin) << "Retrieve New Contacts Since " << aTimeStamp;
 
         QList<QContactLocalId> idList;
         const QContactChangeLogFilter::EventType eventType =
@@ -124,9 +124,9 @@ QList<QContactLocalId> ContactsBackend::getAllNewContactIds(const QDateTime &aTi
 QList<QContactLocalId> ContactsBackend::getAllModifiedContactIds(const QDateTime &aTimeStamp)
 {
 
-        FUNCTION_CALL_TRACE;
+        FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
-        LOG_DEBUG("Retrieve Modified Contacts Since " << aTimeStamp);
+        qCDebug(lcSyncMLPlugin) << "Retrieve Modified Contacts Since " << aTimeStamp;
 
         QList<QContactLocalId> idList;
         const QContactChangeLogFilter::EventType eventType =
@@ -139,9 +139,9 @@ QList<QContactLocalId> ContactsBackend::getAllModifiedContactIds(const QDateTime
 
 QList<QContactLocalId> ContactsBackend::getAllDeletedContactIds(const QDateTime &aTimeStamp)
 {
-        FUNCTION_CALL_TRACE;
+        FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
-        LOG_DEBUG("Retrieve Deleted Contacts Since " << aTimeStamp);
+        qCDebug(lcSyncMLPlugin) <<  "Retrieve Deleted Contacts Since " << aTimeStamp;
 
         QList<QContactLocalId> idList;
         const QContactChangeLogFilter::EventType eventType =
@@ -155,18 +155,18 @@ QList<QContactLocalId> ContactsBackend::getAllDeletedContactIds(const QDateTime 
 bool ContactsBackend::addContacts( const QStringList& aContactDataList,
                                    QMap<int, ContactsStatus>& aStatusMap )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     Q_ASSERT( iReadMgr );
     Q_ASSERT( iWriteMgr );
 
     QList<QVersitDocument> documents = convertVCardListToVersitDocumentList(aContactDataList);
     if (documents.isEmpty()) {
-        LOG_WARNING("invalid sync data, aborting");
+        qCWarning(lcSyncMLPlugin) << "invalid sync data, aborting";
         return false;
     }
 
-    LOG_DEBUG("converted" << aContactDataList.size() << "concatenated vCards into" << documents.size() << "versit documents");
+    qCDebug(lcSyncMLPlugin) <<  "converted" << aContactDataList.size() << "concatenated vCards into" << documents.size() << "versit documents";
 
     int newCount = 0;
     int updatedCount = 0;
@@ -178,19 +178,19 @@ bool ContactsBackend::addContacts( const QStringList& aContactDataList,
                                                      &updatedCount,
                                                      &ignoredCount,
                                                      &builder);
-    LOG_DEBUG("imported" << contactList.size() << "contacts from" << documents.size() << "versit documents");
+    qCDebug(lcSyncMLPlugin) <<  "imported" << contactList.size() << "contacts from" << documents.size() << "versit documents";
     if (contactList.size() != documents.size()) {
-        LOG_WARNING("internal error: could not convert every versit document to a contact:" << contactList.size() << "<" << documents.size());
+        qCWarning(lcSyncMLPlugin) << "internal error: could not convert every versit document to a contact:" << contactList.size() << "<" << documents.size();
         return false;
     }
 
     prepareContactSave(&contactList);
-    LOG_DEBUG("New contacts:" << newCount << "Updated contacts:" << updatedCount);
+    qCDebug(lcSyncMLPlugin) <<  "New contacts:" << newCount << "Updated contacts:" << updatedCount;
 
     QMap<int, QContactManager::Error> errorMap;
     bool retVal = iWriteMgr->saveContacts(&contactList, &errorMap);
     if (!retVal) {
-        LOG_WARNING( "Errors reported while saving contacts:" << iWriteMgr->error() );
+        qCWarning(lcSyncMLPlugin) <<  "Errors reported while saving contacts:" << iWriteMgr->error();
     }
 
     // Populate the status value for each addition item (document).
@@ -206,20 +206,20 @@ bool ContactsBackend::addContacts( const QStringList& aContactDataList,
 
 QContactManager::Error ContactsBackend::modifyContact(const QString &aID, const QString &aContact)
 {
-    FUNCTION_CALL_TRACE;
-    LOG_DEBUG("Modifying a Contact with ID" << aID);
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
+    qCDebug(lcSyncMLPlugin) <<  "Modifying a Contact with ID" << aID;
 
     QContactManager::Error modificationStatus = QContactManager::UnspecifiedError;
 
     if (iWriteMgr == NULL) {
-        LOG_WARNING("Contacts backend not available");
+        qCWarning(lcSyncMLPlugin) << "Contacts backend not available";
     } else {
         QContact oldContactData;
         getContact(QContactId::fromString (aID), oldContactData);
 
         QList<QVersitDocument> documents = convertVCardListToVersitDocumentList(QStringList() << aContact);
         if (documents.size() < 1) {
-            LOG_WARNING("Not a valid vCard:" << aContact);
+            qCWarning(lcSyncMLPlugin) << "Not a valid vCard:" << aContact;
             return QContactManager::UnspecifiedError;
         }
 
@@ -235,10 +235,10 @@ QContactManager::Error ContactsBackend::modifyContact(const QString &aID, const 
                                                          &builder);
 
         if (contacts.size() < 1) {
-            LOG_WARNING("Unable to convert vCard to contact:" << aContact);
+            qCWarning(lcSyncMLPlugin) << "Unable to convert vCard to contact:" << aContact;
             return QContactManager::UnspecifiedError;
         } else if (contacts.size() > 1) {
-            LOG_WARNING("vCard encodes multiple contacts when one is expected:" << aContact);
+            qCWarning(lcSyncMLPlugin) << "vCard encodes multiple contacts when one is expected:" << aContact;
             // just process the first one, ignore the rest.
         }
 
@@ -247,7 +247,7 @@ QContactManager::Error ContactsBackend::modifyContact(const QString &aID, const 
         bool modificationOk = iWriteMgr->saveContact(&oldContactData);
         modificationStatus = iWriteMgr->error();
         if(!modificationOk) {
-            LOG_WARNING("Contact Modification Failed");
+            qCWarning(lcSyncMLPlugin) << "Contact Modification Failed";
         }
     }
 
@@ -257,7 +257,7 @@ QContactManager::Error ContactsBackend::modifyContact(const QString &aID, const 
 QMap<int,ContactsStatus> ContactsBackend::modifyContacts(
     const QStringList &aVCardDataList, const QStringList &aContactIdList)
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     Q_ASSERT (iWriteMgr);
     ContactsStatus status;
@@ -269,7 +269,7 @@ QMap<int,ContactsStatus> ContactsBackend::modifyContacts(
     int updatedCount = 0;
     int ignoredCount = 0;
     QList<QVersitDocument> documents = convertVCardListToVersitDocumentList(aVCardDataList);
-    LOG_DEBUG("converted" << aVCardDataList.size() << "concatenated vCards into" << documents.size() << "versit documents");
+    qCDebug(lcSyncMLPlugin) <<  "converted" << aVCardDataList.size() << "concatenated vCards into" << documents.size() << "versit documents";
     ContactBuilder builder(iWriteMgr, iSyncTarget, iOriginId, ContactBuilder::NoFilterRequiredMode);
     QList<QContact> contacts = SeasideImport::buildImportContacts(
                                                      documents,
@@ -278,21 +278,21 @@ QMap<int,ContactsStatus> ContactsBackend::modifyContacts(
                                                      &ignoredCount,
                                                      &builder);
 
-    LOG_DEBUG("imported" << contacts.size() << "contacts from" << documents.size() << "versit documents");
+    qCDebug(lcSyncMLPlugin) <<  "imported" << contacts.size() << "contacts from" << documents.size() << "versit documents";
     if (contacts.size() != aContactIdList.size()) {
-        LOG_WARNING("internal error: could not convert every versit document to a contact:" << contacts.size() << "<" << documents.size());
+        qCWarning(lcSyncMLPlugin) << "internal error: could not convert every versit document to a contact:" << contacts.size() << "<" << documents.size();
     } else {
         for (int i = 0; i < contacts.size(); i++) {
-            LOG_DEBUG("Id of the contact to be replaced" << aContactIdList.at(i));
+            qCDebug(lcSyncMLPlugin) <<  "Id of the contact to be replaced" << aContactIdList.at(i);
             QContactLocalId uniqueContactItemID = QContactId::fromString (aContactIdList.at(i));
             contacts[i].setId(uniqueContactItemID);
-            LOG_DEBUG("Replacing item's ID " << contacts.at(i));
+            qCDebug(lcSyncMLPlugin) <<  "Replacing item's ID " << contacts.at(i);
         }
 
         if(iWriteMgr->saveContacts(&contacts , &errors)) {
-            LOG_DEBUG("Batch Modification of Contacts Succeeded");
+            qCDebug(lcSyncMLPlugin) <<  "Batch Modification of Contacts Succeeded";
         } else {
-            LOG_DEBUG("Batch Modification of Contacts Failed");
+            qCDebug(lcSyncMLPlugin) <<  "Batch Modification of Contacts Failed";
         }
 
         // QContactManager will populate errorMap only for errors, but we use this as a status map,
@@ -302,10 +302,10 @@ QMap<int,ContactsStatus> ContactsBackend::modifyContacts(
             QContactLocalId contactId = contacts.at(i).id();
             status.id = contactId.toString ();
             if( !errors.contains(i) ) {
-                LOG_DEBUG("No error for contact with id " << contactId << " and index " << i);
+                qCDebug(lcSyncMLPlugin) <<  "No error for contact with id " << contactId << " and index " << i;
                 status.errorCode = QContactManager::NoError;
             } else {
-                LOG_DEBUG("contact with id " << contactId << " and index " << i <<" is in error");
+                qCDebug(lcSyncMLPlugin) <<  "contact with id " << contactId << " and index " << i <<" is in error";
                 QContactManager::Error errorCode = errors.value(i);
                 status.errorCode = errorCode;
             }
@@ -318,7 +318,7 @@ QMap<int,ContactsStatus> ContactsBackend::modifyContacts(
 
 QMap<int , ContactsStatus> ContactsBackend::deleteContacts(const QStringList &aContactIDList)
 {
-        FUNCTION_CALL_TRACE;
+        FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     ContactsStatus status;
     QMap<int , QContactManager::Error> errors;
@@ -329,7 +329,7 @@ QMap<int , ContactsStatus> ContactsBackend::deleteContacts(const QStringList &aC
             errors.insert(i, QContactManager::UnspecifiedError);
         }
 
-        LOG_WARNING("Contacts backend not available");
+        qCWarning(lcSyncMLPlugin) << "Contacts backend not available";
     }
     else {
         QList<QContactLocalId> qContactIdList;
@@ -338,10 +338,10 @@ QMap<int , ContactsStatus> ContactsBackend::deleteContacts(const QStringList &aC
         }
 
         if(iWriteMgr->removeContacts(qContactIdList , &errors)) {
-            LOG_DEBUG("Successfully Removed all contacts ");
+            qCDebug(lcSyncMLPlugin) <<  "Successfully Removed all contacts ";
         }
         else {
-            LOG_WARNING("Failed Removing Contacts");
+            qCWarning(lcSyncMLPlugin) << "Failed Removing Contacts";
         }
 
         // QContactManager will populate errorMap only for errors, but we use this as a status map,
@@ -353,12 +353,12 @@ QMap<int , ContactsStatus> ContactsBackend::deleteContacts(const QStringList &aC
 
             if( !errors.contains(i) )
             {
-                LOG_DEBUG("No error for contact with id " << contactId << " and index " << i);
+                qCDebug(lcSyncMLPlugin) <<  "No error for contact with id " << contactId << " and index " << i;
                 status.errorCode = QContactManager::NoError;
             }
             else
             {
-                LOG_DEBUG("contact with id " << contactId << " and index " << i <<" is in error");
+                qCDebug(lcSyncMLPlugin) <<  "contact with id " << contactId << " and index " << i <<" is in error";
                 QContactManager::Error errorCode = errors.value(i);
                 status.errorCode = errorCode;
             }
@@ -394,7 +394,7 @@ void ContactsBackend::prepareContactSave(QList<QContact> *contactList)
 
 QList<QVersitDocument> ContactsBackend::convertVCardListToVersitDocumentList(const QStringList &aVCardList)
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     QList<QVersitDocument> retn;
     Q_FOREACH (const QString &vCard, aVCardList) {
@@ -411,18 +411,18 @@ QList<QVersitDocument> ContactsBackend::convertVCardListToVersitDocumentList(con
 
         QList<QVersitDocument> results = versitReader.results();
         if (results.size() == 0) {
-            LOG_WARNING("Unable to convert vCard to versit document:" << versitReader.error() << ":");
+            qCWarning(lcSyncMLPlugin) << "Unable to convert vCard to versit document:" << versitReader.error() << ":";
             QStringList erroneousVCardLines = modifiedVCard.split('\n', QString::KeepEmptyParts);
             Q_FOREACH(QString line, erroneousVCardLines) {
                 if (line.contains(':') || line.trimmed().isEmpty()) {
                     line.replace('\r', "<CR>");
                     line.append("<LF>");
-                    LOG_WARNING(line);
+                    qCWarning(lcSyncMLPlugin) << line;
                 }
             }
             return QList<QVersitDocument>();
         } else if (versitReader.results().size() > 1) {
-            LOG_WARNING("Multiple contacts from single vCard:" << modifiedVCard);
+            qCWarning(lcSyncMLPlugin) << "Multiple contacts from single vCard:" << modifiedVCard;
         }
 
         retn.append(results.first());
@@ -433,7 +433,7 @@ QList<QVersitDocument> ContactsBackend::convertVCardListToVersitDocumentList(con
 
 QString ContactsBackend::convertQContactToVCard(const QContact &aContact)
 {
-        FUNCTION_CALL_TRACE;
+        FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
         QList<QContact> contactsList;
         contactsList.append (aContact);
@@ -463,7 +463,7 @@ QString ContactsBackend::convertQContactToVCard(const QContact &aContact)
                 writer.setDevice(&writeBuf);
 
                 if (!writer.startWriting(versitDocumentList)) {
-                        LOG_CRITICAL ("Error While writing -- " << writer.error() );
+                        qCCritical(lcSyncMLPlugin) << "Error While writing -- " << writer.error();
                 }
 
                 if (writer.waitForFinished()) {
@@ -478,7 +478,7 @@ QString ContactsBackend::convertQContactToVCard(const QContact &aContact)
 QMap<QString, QString> ContactsBackend::convertQContactListToVCardList(
     const QList<QContact> & aContactList)
 {
-        FUNCTION_CALL_TRACE;
+        FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
         QMap<QString, QString> idDataMap;
 
         foreach (QContact contact, aContactList) {
@@ -491,7 +491,7 @@ QMap<QString, QString> ContactsBackend::convertQContactListToVCardList(
 void ContactsBackend::getSpecifiedContactIds(const QContactChangeLogFilter::EventType aEventType,
                 const QDateTime& aTimeStamp, QList<QContactLocalId>& aIdList)
 {
-        FUNCTION_CALL_TRACE;
+        FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
         QContactChangeLogFilter filter(aEventType);
         filter.setSince(aTimeStamp);
@@ -533,11 +533,11 @@ void ContactsBackend::getSpecifiedContactIds(const QContactChangeLogFilter::Even
     int idCountAfterDupRemoval = idSet.size ();
     strIdList = idSet.toList ();
 
-    LOG_DEBUG("Item IDs found (returned / incl. duplicates): " << idCountAfterDupRemoval << "/" << originalIdCount);
+    qCDebug(lcSyncMLPlugin) << "Item IDs found (returned / incl. duplicates): " << idCountAfterDupRemoval << "/" << originalIdCount;
 
     if (originalIdCount != idCountAfterDupRemoval) {
-        LOG_WARNING("Contacts backend returned duplicate items for requested list");
-        LOG_WARNING("Duplicate item IDs have been removed");
+        qCWarning(lcSyncMLPlugin) << "Contacts backend returned duplicate items for requested list";
+        qCWarning(lcSyncMLPlugin) << "Duplicate item IDs have been removed";
     } // no else
 
     // Convert strIdList to aIdList (QContactId)
@@ -549,12 +549,12 @@ void ContactsBackend::getSpecifiedContactIds(const QContactChangeLogFilter::Even
 
 QDateTime ContactsBackend::lastModificationTime(const QContactLocalId &aContactId)
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     QDateTime lastModificationTime = QDateTime::fromTime_t(0);
 
     if (iReadMgr == NULL) {
-        LOG_WARNING("Contacts backend not available");
+        qCWarning(lcSyncMLPlugin) << "Contacts backend not available";
     }
     else {
         QContact contact;
@@ -572,7 +572,7 @@ QDateTime ContactsBackend::lastModificationTime(const QContactLocalId &aContactI
  */
 void ContactsBackend::getContact(const QContactLocalId& aContactId, QContact& aContact)
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     QList<QContactLocalId> contactId;
     contactId.append(aContactId);
@@ -591,7 +591,7 @@ void ContactsBackend::getContact(const QContactLocalId& aContactId, QContact& aC
 void ContactsBackend::getContacts(const QList<QContactLocalId>& aContactIds,
                                   QList<QContact>& aContacts)
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     QContactIdFilter contactFilter;
     contactFilter.setIds(aContactIds);
@@ -604,7 +604,7 @@ void ContactsBackend::getContacts(const QList<QContactLocalId>& aContactIds,
 void ContactsBackend::getContacts(const QList<QContactLocalId>&  aIdsList,
                                   QMap<QString,QString>& aDataMap)
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     QList<QContact> returnedContacts;
 
@@ -617,7 +617,7 @@ void ContactsBackend::getContacts(const QList<QContactLocalId>&  aIdsList,
 
 QDateTime ContactsBackend::getCreationTime( const QContact& aContact )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     QContactTimestamp contactTimestamp = aContact.detail<QContactTimestamp>();
 
@@ -626,7 +626,7 @@ QDateTime ContactsBackend::getCreationTime( const QContact& aContact )
 
 QList<QDateTime> ContactsBackend::getCreationTimes( const QList<QContactLocalId>& aContactIds )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     Q_ASSERT( iReadMgr );
 
@@ -685,7 +685,7 @@ QList<QDateTime> ContactsBackend::getCreationTimes( const QList<QContactLocalId>
     }
     else
     {
-        LOG_WARNING( "Unable to fetch creation times" );
+        qCWarning(lcSyncMLPlugin) << "Unable to fetch creation times";
         for( int i = 0; i < aContactIds.count(); ++i )
         {
             creationTimes.append( currentTime );

@@ -22,6 +22,7 @@ HEADERS += ItemAdapter.h \
            SyncMLCommon.h \
            SyncMLConfig.h \
            SyncMLStorageProvider.h \
+           SyncMLPluginLogging.h \
            FolderItemParser.h \
            DeviceInfo.h
 
@@ -31,6 +32,7 @@ SOURCES += ItemAdapter.cpp \
            StorageAdapter.cpp \
            SyncMLConfig.cpp \
            SyncMLStorageProvider.cpp \
+           SyncMLPluginLogging.cpp \
            FolderItemParser.cpp  \
            DeviceInfo.cpp
 

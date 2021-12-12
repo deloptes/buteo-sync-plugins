@@ -19,11 +19,12 @@
  */
 #include <unistd.h>
 
-#include <LogMacros.h>
 
 #include <manager.h>
 #include <initmanagerjob.h>
 #include <pendingcall.h>
+
+#include "SyncMLPluginLogging.h"
 
 #include "SdpProfile.h"
 
@@ -45,7 +46,7 @@ SdpProfile::SdpProfile(BluezQt::Profile::LocalRole role, const QString &sdp, QOb
         channel = BT_CLIENT_CHANNEL;
         break;
     default:
-        LOG_CRITICAL ("A valid role for the profile is missing");
+        qCCritical(lcSyncMLPlugin) << "A valid role for the profile is missing";
     }
 
     setLocalRole(role);
@@ -58,7 +59,7 @@ SdpProfile::SdpProfile(BluezQt::Profile::LocalRole role, const QString &sdp, QOb
 
 SdpProfile::~SdpProfile()
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 //
 //    if (mSocket->isOpen())
 //        mSocket->close();
@@ -76,16 +77,16 @@ QString SdpProfile::uuid() const
 
 void SdpProfile::newConnection(BluezQt::DevicePtr device, const QDBusUnixFileDescriptor &fd, const QVariantMap &properties, const BluezQt::Request<> &request)
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
-    LOG_DEBUG("Connect fd" << fd.fileDescriptor() << device->address() << properties);
+    qCDebug(lcSyncMLPlugin) << "Connect fd" << fd.fileDescriptor() << device->address() << properties;
 
     mDeviceAddress = device->address();
     mDeviceProperties = properties;
 
     mSocket = createSocket(fd);
     if (!mSocket->isValid()) {
-        LOG_CRITICAL ("Invalid socket");
+        qCCritical(lcSyncMLPlugin) << "Invalid socket";
         request.cancel();
         return;
     }
@@ -95,9 +96,9 @@ void SdpProfile::newConnection(BluezQt::DevicePtr device, const QDBusUnixFileDes
 
 void SdpProfile::requestDisconnection(BluezQt::DevicePtr device, const BluezQt::Request<> &request)
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
     // Device device is disconnecting
-    LOG_DEBUG("Disconnect" << device->address());
+    qCDebug(lcSyncMLPlugin) << "Disconnect" << device->address();
 
     if (mSocket->isOpen())
         mSocket->close();
@@ -108,7 +109,7 @@ void SdpProfile::requestDisconnection(BluezQt::DevicePtr device, const BluezQt::
 
 void SdpProfile::release()
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     mSocket.clear();
 }

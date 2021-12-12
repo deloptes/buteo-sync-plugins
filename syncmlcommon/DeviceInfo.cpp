@@ -22,7 +22,7 @@
  */
 
 #include "DeviceInfo.h"
-#include "LogMacros.h"
+#include "SyncMLPluginLogging.h"
 #include <QFile>
 #include <QXmlStreamReader>
 #include <QXmlStreamWriter>
@@ -45,7 +45,7 @@ const QString DEVINFO_DEVTYPE("phone");
 
 DeviceInfo::DeviceInfo()
 {
-        FUNCTION_CALL_TRACE;
+        FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     iProperties << XML_KEY_MANUFACTURER << XML_KEY_MODEL << XML_KEY_HW_VER << XML_KEY_SW_VER << XML_KEY_FW_VER  << XML_KEY_ID << XML_KEY_DEV_TYPE;
 
@@ -54,12 +54,12 @@ DeviceInfo::DeviceInfo()
 
 DeviceInfo::~DeviceInfo()
 {
-        FUNCTION_CALL_TRACE;
+        FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 }
 
 QString DeviceInfo::getDeviceIMEI()
 {
-        FUNCTION_CALL_TRACE;
+        FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
         /// @todo returning first IMEI for now; needs fixing on multisim devices
         return IMEI + deviceInfo.imei(0);
@@ -67,14 +67,14 @@ QString DeviceInfo::getDeviceIMEI()
 
 QString DeviceInfo::getManufacturer()
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     return deviceInfo.manufacturer();
 }
 
 QString DeviceInfo::getModel()
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     return deviceInfo.model();
 }
@@ -82,7 +82,7 @@ QString DeviceInfo::getModel()
 
 QString DeviceInfo::getSwVersion()
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     return deviceInfo.version(QDeviceInfo::Firmware);
 }
@@ -90,7 +90,7 @@ QString DeviceInfo::getSwVersion()
 
 QString DeviceInfo::getHwVersion()
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     //Empty now
     return iHwVersion;
@@ -98,14 +98,14 @@ QString DeviceInfo::getHwVersion()
 
 QString DeviceInfo::getFwVersion()
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     return getSwVersion();
 }
 
 QString DeviceInfo::getDeviceType()
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     if( iDeviceType.isEmpty()) {
         iDeviceType = DEVINFO_DEVTYPE;
@@ -117,7 +117,7 @@ QString DeviceInfo::getDeviceType()
 
 void DeviceInfo::setSourceToRead(Source &aSource)
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     iSource = aSource;
 
@@ -126,7 +126,7 @@ void DeviceInfo::setSourceToRead(Source &aSource)
 
 DeviceInfo::Source DeviceInfo::getSourceToRead()
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     return iSource;
 }
@@ -134,7 +134,7 @@ DeviceInfo::Source DeviceInfo::getSourceToRead()
 
 bool DeviceInfo::setDeviceXmlFile(QString &aFileName)
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
     QFile file(aFileName);
     bool status = false;
 
@@ -149,13 +149,13 @@ bool DeviceInfo::setDeviceXmlFile(QString &aFileName)
 
 QString DeviceInfo::DeviceXmlFile()
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
     return iDeviceInfoFile;
 }
 
 QMap<QString,QString> DeviceInfo::getDeviceInformation()
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
     QMap<QString,QString> deviceMap;
 
     switch(iSource) {
@@ -177,7 +177,7 @@ QMap<QString,QString> DeviceInfo::getDeviceInformation()
             } else if (property == XML_KEY_DEV_TYPE){
                 deviceMap.insert(property,getDeviceType());
             } else {
-                LOG_DEBUG("Unknown Property:" << property);
+                qCDebug(lcSyncMLPlugin) << "Unknown Property:" << property;
             }
         }
         break;
@@ -203,12 +203,12 @@ QMap<QString,QString> DeviceInfo::getDeviceInformation()
                 }
                 file.close();
             } else {
-                LOG_DEBUG("Failed to open the file " << iDeviceInfoFile );
+                qCDebug(lcSyncMLPlugin) << "Failed to open the file " << iDeviceInfoFile;
             }
         }
         break;
     default:
-        LOG_DEBUG("Source to read the system information is not set ");
+        qCDebug(lcSyncMLPlugin) << "Source to read the system information is not set ";
         break;
     }
 
@@ -218,7 +218,7 @@ QMap<QString,QString> DeviceInfo::getDeviceInformation()
 
 void DeviceInfo::saveDevInfoToFile(QMap<QString,QString> &aDevInfo , QString &aFileName)
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
     QByteArray data;
     QXmlStreamWriter writer(&data);
     writer.setAutoFormatting(true);
@@ -230,7 +230,7 @@ void DeviceInfo::saveDevInfoToFile(QMap<QString,QString> &aDevInfo , QString &aF
     QMapIterator<QString, QString> i(aDevInfo);
     while (i.hasNext()) {
         i.next();
-        LOG_DEBUG(i.key() << ": " << i.value());
+        qCDebug(lcSyncMLPlugin) << i.key() << ": " << i.value();
         writer.writeTextElement(i.key(),i.value());
     }
 

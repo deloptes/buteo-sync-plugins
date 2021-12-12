@@ -20,7 +20,7 @@
 * 02110-1301 USA
 */
 #include "SyncMLServer.h"
-#include <LogMacros.h>
+#include "SyncMLPluginLogging.h"
 
 #include <buteosyncfw5/SyncProfile.h>
 #include <buteosyncml5/OBEXTransport.h>
@@ -46,12 +46,12 @@ SyncMLServer::SyncMLServer (const QString& pluginName,
     mTransport (0), mCommittedItems (0), mConnectionType (Sync::CONNECTIVITY_USB),
     mIsSessionInProgress (false), mBTActive (false), mUSBActive (false)
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 }
 
 SyncMLServer::~SyncMLServer ()
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     closeSyncAgentConfig ();
     closeSyncAgent ();
@@ -65,7 +65,7 @@ SyncMLServer::~SyncMLServer ()
 bool
 SyncMLServer::init ()
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     return true;
 }
@@ -73,7 +73,7 @@ SyncMLServer::init ()
 bool
 SyncMLServer::uninit ()
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     closeSyncAgentConfig ();
     closeSyncAgent ();
@@ -89,7 +89,7 @@ SyncMLServer::uninit ()
 void
 SyncMLServer::abortSync (Sync::SyncStatus status)
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     DataSync::SyncState state = DataSync::ABORTED;
 
@@ -98,7 +98,7 @@ SyncMLServer::abortSync (Sync::SyncStatus status)
 
     if (mAgent && mAgent->abort (state))
     {
-        LOG_DEBUG ("Signaling SyncML agent abort");
+        qCDebug(lcSyncMLPlugin) << "Signaling SyncML agent abort";
     } else
     {
         handleSyncFinished (DataSync::ABORTED);
@@ -108,7 +108,7 @@ SyncMLServer::abortSync (Sync::SyncStatus status)
 bool
 SyncMLServer::cleanUp ()
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     // FIXME: Perform necessary cleanup
     return true;
@@ -123,9 +123,9 @@ SyncMLServer::getSyncResults () const
 bool
 SyncMLServer::startListen ()
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
-    LOG_DEBUG ("Starting listener");
+    qCDebug(lcSyncMLPlugin) << "Starting listener";
 
     bool listening = false;
     if (iCbInterface->isConnectivityAvailable (Sync::CONNECTIVITY_USB))
@@ -149,7 +149,7 @@ SyncMLServer::startListen ()
 void
 SyncMLServer::stopListen ()
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     // Stop all connections
     if (mUSBActive)
@@ -161,7 +161,7 @@ SyncMLServer::stopListen ()
 void
 SyncMLServer::suspend ()
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     // Not implementing suspend
 }
@@ -169,7 +169,7 @@ SyncMLServer::suspend ()
 void
 SyncMLServer::resume ()
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     // Not implementing suspend
 }
@@ -177,19 +177,19 @@ SyncMLServer::resume ()
 void
 SyncMLServer::connectivityStateChanged (Sync::ConnectivityType type, bool state)
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
-    LOG_DEBUG ("Connectivity state changed event " << type << ". Connectivity changed to " << state);
+    qCDebug(lcSyncMLPlugin) << "Connectivity state changed event " << type << ". Connectivity changed to " << state;
 
     if (type == Sync::CONNECTIVITY_USB)
     {
         // Only connectivity changes would be USB enabled/disabled
         if (state)
         {
-            LOG_DEBUG ("USB available. Starting sync...");
+            qCDebug(lcSyncMLPlugin) << "USB available. Starting sync...";
             mUSBActive = createUSBTransport ();
         } else {
-            LOG_DEBUG ("USB connection not available. Stopping sync...");
+            qCDebug(lcSyncMLPlugin) << "USB connection not available. Stopping sync...";
             closeUSBTransport ();
             mUSBActive = false;
 
@@ -199,12 +199,12 @@ SyncMLServer::connectivityStateChanged (Sync::ConnectivityType type, bool state)
     {
         if (state)
         {
-            LOG_DEBUG ("BT connection is available. Creating BT connection...");
+            qCDebug(lcSyncMLPlugin) << "BT connection is available. Creating BT connection...";
             mBTActive = createBTTransport ();
         } else
         {
-            LOG_DEBUG ("BT connection unavailable. Closing BT connection...");
-            closeBTTransport ();
+            qCDebug(lcSyncMLPlugin) << "BT connection unavailable. Closing BT connection...";
+            closeBTTransport();
             mBTActive = false;
         }
     }
@@ -213,9 +213,9 @@ SyncMLServer::connectivityStateChanged (Sync::ConnectivityType type, bool state)
 bool
 SyncMLServer::initSyncAgent ()
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
-    LOG_DEBUG ("Creating SyncML agent...");
+    qCDebug(lcSyncMLPlugin) << "Creating SyncML agent...";
 
     mAgent = new DataSync::SyncAgent ();
     return true;
@@ -231,7 +231,7 @@ SyncMLServer::closeSyncAgent ()
 DataSync::SyncAgentConfig*
 SyncMLServer::initSyncAgentConfig ()
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     if (!mTransport || !mStorageProvider.init (&iProfile, this, iCbInterface, true))
         return 0;
@@ -242,7 +242,7 @@ SyncMLServer::initSyncAgentConfig ()
     SyncMLConfig::syncmlConfigFilePaths (defaultSyncMLConfigFile, extSyncMLConfigFile);
     if (!mConfig->fromFile (defaultSyncMLConfigFile))
     {
-        LOG_CRITICAL ("Unable to read default SyncML config");
+        qCCritical(lcSyncMLPlugin) << "Unable to read default SyncML config";
         delete mConfig;
         mConfig = 0;
         return mConfig;
@@ -250,14 +250,14 @@ SyncMLServer::initSyncAgentConfig ()
 
     if (!mConfig->fromFile (extSyncMLConfigFile))
     {
-        LOG_DEBUG ("Could not find external configuration file");
+        qCDebug(lcSyncMLPlugin) << "Could not find external configuration file";
     }
 
     mConfig->setStorageProvider (&mStorageProvider);
     mConfig->setTransport (mTransport);
 
     // Do we need to read the device info from file?
-    QString DEV_INFO_FILE = SyncMLConfig::getDevInfoFile ();
+    QString DEV_INFO_FILE = SyncMLConfig::getDevInfoFile();
     QFile devInfoFile (DEV_INFO_FILE);
 
     if (!devInfoFile.exists ())
@@ -277,23 +277,23 @@ SyncMLServer::initSyncAgentConfig ()
 void
 SyncMLServer::closeSyncAgentConfig ()
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
-    LOG_DEBUG ("Closing config...");
+    qCDebug(lcSyncMLPlugin) << "Closing config...";
 
     delete mConfig;
     mConfig = 0;
 
     if (!mStorageProvider.uninit ())
-        LOG_CRITICAL ("Unable to close storage provider");
+        qCCritical(lcSyncMLPlugin) << "Unable to close storage provider";
 }
 
 bool
 SyncMLServer::createUSBTransport ()
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
-    LOG_DEBUG ("Opening new USB connection");
+    qCDebug(lcSyncMLPlugin) << "Opening new USB connection";
 
     mUSBConnection.connect ();
 
@@ -306,9 +306,9 @@ SyncMLServer::createUSBTransport ()
 bool
 SyncMLServer::createBTTransport ()
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
     
-    LOG_DEBUG ("Creating new BT connection");
+    qCDebug(lcSyncMLPlugin) << "Creating new BT connection";
     bool btInitRes = mBTConnection.init ();
     
     QObject::connect (&mBTConnection, SIGNAL (btConnected (int, QString)),
@@ -320,7 +320,7 @@ SyncMLServer::createBTTransport ()
 void
 SyncMLServer::closeUSBTransport ()
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     QObject::disconnect (&mUSBConnection, SIGNAL (usbConnected (int)),
                 this, SLOT (handleUSBConnected (int)));
@@ -330,7 +330,7 @@ SyncMLServer::closeUSBTransport ()
 void
 SyncMLServer::closeBTTransport ()
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
     
     QObject::disconnect (&mBTConnection, SIGNAL (btConnected (int, QString)),
                          this, SLOT (handleBTConnected (int, QString)));
@@ -340,17 +340,17 @@ SyncMLServer::closeBTTransport ()
 void
 SyncMLServer::handleUSBConnected (int fd)
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
     Q_UNUSED (fd);
 
     if (mIsSessionInProgress)
     {
-        LOG_DEBUG ("Sync session is in progress over transport " << mConnectionType);
+        qCDebug(lcSyncMLPlugin) << "Sync session is in progress over transport " << mConnectionType;
         emit sessionInProgress (mConnectionType);
         return;
     }
 
-    LOG_DEBUG ("New incoming data over USB");
+    qCDebug(lcSyncMLPlugin) << "New incoming data over USB";
 
     if (mTransport == NULL)
     {
@@ -361,7 +361,7 @@ SyncMLServer::handleUSBConnected (int fd)
     
     if (!mTransport)
     {
-        LOG_DEBUG ("Creation of USB transport failed");
+        qCDebug(lcSyncMLPlugin) << "Creation of USB transport failed";
         return;
     }
 
@@ -375,17 +375,17 @@ SyncMLServer::handleUSBConnected (int fd)
 void
 SyncMLServer::handleBTConnected (int fd, QString btAddr)
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
     Q_UNUSED (fd);
 
     if (mIsSessionInProgress)
     {
-        LOG_DEBUG ("Sync session is in progress over transport " << mConnectionType);
+        qCDebug(lcSyncMLPlugin) << "Sync session is in progress over transport " << mConnectionType;
         emit sessionInProgress (mConnectionType);
         return;
     }
 
-    LOG_DEBUG ("New incoming connection over BT");
+    qCDebug(lcSyncMLPlugin) << "New incoming connection over BT";
     
     if (mTransport == NULL)
     {
@@ -396,7 +396,7 @@ SyncMLServer::handleBTConnected (int fd, QString btAddr)
     
     if (!mTransport)
     {
-        LOG_DEBUG ("Creation of BT transport failed");
+        qCDebug(lcSyncMLPlugin) << "Creation of BT transport failed";
         return;
     }
     
@@ -410,7 +410,7 @@ SyncMLServer::handleBTConnected (int fd, QString btAddr)
 bool
 SyncMLServer::startNewSession (QString address)
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     if (!initSyncAgent () || !initSyncAgentConfig ())
         return false;
@@ -439,17 +439,17 @@ SyncMLServer::startNewSession (QString address)
 void
 SyncMLServer::handleStateChanged (DataSync::SyncState state)
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
-    LOG_DEBUG ("SyncML new state " << state);
+    qCDebug(lcSyncMLPlugin) << "SyncML new state " << state;
 }
 
 void
 SyncMLServer::handleSyncFinished (DataSync::SyncState state)
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
-    LOG_DEBUG ("Sync finished with state " << state);
+    qCDebug(lcSyncMLPlugin) << "Sync finished with state " << state;
     bool errorStatus = true;
 
     switch (state)
@@ -476,7 +476,7 @@ SyncMLServer::handleSyncFinished (DataSync::SyncState state)
 
     default:
     {
-        LOG_CRITICAL ("Unexpected state change");
+        qCCritical(lcSyncMLPlugin) << "Unexpected state change";
         generateResults (false);
 
         emit error(getProfileName(), QString::number(state), Buteo::SyncResults::INTERNAL_ERROR);
@@ -498,7 +498,7 @@ SyncMLServer::handleSyncFinished (DataSync::SyncState state)
 void
 SyncMLServer::handleStorageAccquired (QString type)
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     // emit signal that storage has been acquired
     emit accquiredStorage (type);
@@ -511,13 +511,13 @@ SyncMLServer::handleItemProcessed (DataSync::ModificationType modificationType,
                                    QString dbType,
                                    int committedItems)
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
-    LOG_DEBUG ("Modification type:" << modificationType);
-    LOG_DEBUG ("ModificationType database:" << modifiedDb);
-    LOG_DEBUG ("Local database:" << localDb);
-    LOG_DEBUG ("Database type:" << dbType);
-    LOG_DEBUG ("Committed items:" << committedItems);
+    qCDebug(lcSyncMLPlugin) << "Modification type:" << modificationType;
+    qCDebug(lcSyncMLPlugin) << "ModificationType database:" << modifiedDb;
+    qCDebug(lcSyncMLPlugin) << "Local database:" << localDb;
+    qCDebug(lcSyncMLPlugin) << "Database type:" << dbType;
+    qCDebug(lcSyncMLPlugin) << "Committed items:" << committedItems;
 
     mCommittedItems++;
 
@@ -588,7 +588,7 @@ SyncMLServer::handleItemProcessed (DataSync::ModificationType modificationType,
 void
 SyncMLServer::generateResults (bool success)
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     mResults.setMajorCode (success ? Buteo::SyncResults::SYNC_RESULT_SUCCESS : Buteo::SyncResults::SYNC_RESULT_FAILED);
 
@@ -597,7 +597,7 @@ SyncMLServer::generateResults (bool success)
 
     if (dbResults->isEmpty ())
     {
-        LOG_DEBUG("No items transferred");
+        qCDebug(lcSyncMLPlugin) << "No items transferred";
     }
     else
     {
@@ -616,13 +616,13 @@ SyncMLServer::generateResults (bool success)
                                        r.iRemoteItemsModified));
             mResults.addTargetResults (targetResults);
 
-            LOG_DEBUG("Items for" << targetResults.targetName () << ":");
-            LOG_DEBUG("LA:" << targetResults.localItems ().added <<
+            qCDebug(lcSyncMLPlugin) << "Items for" << targetResults.targetName () << ":";
+            qCDebug(lcSyncMLPlugin) << "LA:" << targetResults.localItems ().added <<
                       "LD:" << targetResults.localItems ().deleted <<
                       "LM:" << targetResults.localItems ().modified <<
                       "RA:" << targetResults.remoteItems ().added <<
                       "RD:" << targetResults.remoteItems ().deleted <<
-                      "RM:" << targetResults.remoteItems ().modified);
+                      "RM:" << targetResults.remoteItems ().modified;
         }
     }
 }

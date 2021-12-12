@@ -30,8 +30,7 @@
 #include "ItemAdapter.h"
 #include "SyncMLConfig.h"
 
-#include <LogMacros.h>
-
+#include "SyncMLPluginLogging.h"
 
 // Database file for SyncML storage adapter database
 #define  ADAPTERDBFILE  "syncmladapter.db"
@@ -39,18 +38,18 @@
 StorageAdapter::StorageAdapter( Buteo::StoragePlugin* aPlugin )
  : iPlugin( aPlugin )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
 }
 
 StorageAdapter::~StorageAdapter()
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 }
 
 bool StorageAdapter::isValid()
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     if( iPlugin ) {
         return true;
@@ -62,7 +61,7 @@ bool StorageAdapter::isValid()
 
 bool StorageAdapter::init()
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     // ** Process properties from client/server plugin
 
@@ -70,16 +69,17 @@ bool StorageAdapter::init()
     QMap<QString, QString> pluginProperties;
 
     iPlugin->getProperties( pluginProperties );
-    LOG_DEBUG( "StorageAdapter: dumping storage properties:" );
-    LOG_DEBUG( pluginProperties );
+    qCDebug(lcSyncMLPlugin) << "StorageAdapter: dumping storage properties:";
+    qCDebug(lcSyncMLPlugin) << pluginProperties;
 
     // Preferred format
 
     QString preferredFormat = pluginProperties.value( STORAGE_DEFAULT_MIME_PROP );
     QString preferredVersion = pluginProperties.value( STORAGE_DEFAULT_MIME_VERSION_PROP );
     if( preferredFormat.isEmpty() || preferredVersion.isEmpty() ) {
-        LOG_CRITICAL( "No STORAGE_DEFAULT_MIME_PROP or STORAGE_DEFAULT_MIME_VERSION_PROP"
-                      <<"found for storage: " << iPlugin->getPluginName() );
+        qCCritical(lcSyncMLPlugin)
+                << "No STORAGE_DEFAULT_MIME_PROP or STORAGE_DEFAULT_MIME_VERSION_PROP"
+                <<"found for storage: " << iPlugin->getPluginName();
         return false;
     }
 
@@ -97,7 +97,9 @@ bool StorageAdapter::init()
     iSourceDB = pluginProperties.value( STORAGE_SOURCE_URI );
 
     if( iSourceDB.isEmpty() ) {
-        LOG_CRITICAL( "No STORAGE_SOURCE_URI prop found for storage: " << iPlugin->getPluginName() );
+        qCCritical(lcSyncMLPlugin)
+                << "No STORAGE_SOURCE_URI prop found for storage: "
+                << iPlugin->getPluginName();
         return false;
     }
 
@@ -118,7 +120,7 @@ bool StorageAdapter::init()
 
 bool StorageAdapter::uninit()
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     iIdMapper.uninit();
 
@@ -127,28 +129,28 @@ bool StorageAdapter::uninit()
 
 Buteo::StoragePlugin* StorageAdapter::getPlugin() const
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     return iPlugin;
 }
 
 const QString& StorageAdapter::getSourceURI() const
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     return iSourceDB;
 }
 
 const DataSync::StorageContentFormatInfo& StorageAdapter::getFormatInfo() const
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     return iFormats;
 }
 
 qint64 StorageAdapter::getMaxObjSize() const
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     // Max object size not supported at the moment
     return 0;
@@ -156,7 +158,7 @@ qint64 StorageAdapter::getMaxObjSize() const
 
 QByteArray StorageAdapter::getPluginCTCaps( DataSync::ProtocolVersion aVersion ) const
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     Q_ASSERT( iPlugin );
 
@@ -174,7 +176,7 @@ QByteArray StorageAdapter::getPluginCTCaps( DataSync::ProtocolVersion aVersion )
 
 QByteArray StorageAdapter::getPluginExts() const
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     Q_ASSERT( iPlugin );
 
@@ -183,7 +185,7 @@ QByteArray StorageAdapter::getPluginExts() const
 
 bool StorageAdapter::getAll( QList<DataSync::SyncItemKey>& aKeys )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     QList<QString> newKeys;
     if (!iPlugin->getAllItemIds( newKeys )) {
@@ -202,7 +204,7 @@ bool StorageAdapter::getModifications( QList<DataSync::SyncItemKey>& aNewKeys,
                                        QList<DataSync::SyncItemKey>& aDeletedKeys,
                                        const QDateTime& aTimeStamp )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     QList<QString> newKeys;
     QList<QString> replacedKeys;
@@ -232,7 +234,7 @@ bool StorageAdapter::getModifications( QList<DataSync::SyncItemKey>& aNewKeys,
 
 DataSync::SyncItem* StorageAdapter::newItem()
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     Buteo::StorageItem* item = iPlugin->newItem();
 
@@ -250,7 +252,7 @@ DataSync::SyncItem* StorageAdapter::newItem()
 
 DataSync::SyncItem* StorageAdapter::getSyncItem( const DataSync::SyncItemKey& aKey )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     QString id = iIdMapper.key( aKey );
 
@@ -280,7 +282,7 @@ DataSync::SyncItem* StorageAdapter::getSyncItem( const DataSync::SyncItemKey& aK
 
 QList<DataSync::SyncItem*> StorageAdapter::getSyncItems( const QList<DataSync::SyncItemKey>& aKeyList )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     QStringList idList;
     QList<DataSync::SyncItemKey>::const_iterator i;
@@ -325,7 +327,7 @@ QList<DataSync::SyncItem*> StorageAdapter::getSyncItems( const QList<DataSync::S
 QList<DataSync::StoragePlugin::StoragePluginStatus> StorageAdapter::addItems( const QList<DataSync::SyncItem*>& aItems )
 {
 
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     QList<StoragePlugin::StoragePluginStatus> results;
     QList<Buteo::StorageItem*> items;
@@ -360,7 +362,7 @@ QList<DataSync::StoragePlugin::StoragePluginStatus> StorageAdapter::addItems( co
 QList<DataSync::StoragePlugin::StoragePluginStatus> StorageAdapter::replaceItems( const QList<DataSync::SyncItem*>& aItems )
 {
 
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     QList<StoragePlugin::StoragePluginStatus> results;
     QList<Buteo::StorageItem*> items;
@@ -396,7 +398,7 @@ QList<DataSync::StoragePlugin::StoragePluginStatus> StorageAdapter::replaceItems
 
 QList<DataSync::StoragePlugin::StoragePluginStatus> StorageAdapter::deleteItems( const QList<DataSync::SyncItemKey>& aKeys )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     QList<QString> ids;
     QList<StoragePlugin::StoragePluginStatus> results;
@@ -474,7 +476,7 @@ DataSync::StoragePlugin::StoragePluginStatus StorageAdapter::convertStatus( Bute
 
 Buteo::StorageItem* StorageAdapter::toStorageItem( const DataSync::SyncItem* aSyncItem ) const
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     const ItemAdapter* adapter = static_cast<const ItemAdapter*>( aSyncItem );
     Buteo::StorageItem& item = adapter->getItem();

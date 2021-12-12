@@ -42,17 +42,17 @@
 #include <sys/stat.h>
 #include <termios.h>
 
-#include <buteosyncfw5/LogMacros.h>
-
 #include <adapter.h>
 #include <device.h>
 #include <initmanagerjob.h>
 #include <pendingcall.h>
 
+#include "SyncMLPluginLogging.h"
+
 BTConnection::BTConnection()
  : iFd( -1 )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     // Initialize BluezQt
     btManager = new BluezQt::Manager(this);
@@ -62,7 +62,7 @@ BTConnection::BTConnection()
         QObject::connect(initJob, &BluezQt::InitManagerJob::result,
                 this, &BTConnection::initBluez5ManagerJobResult/*,
                     Qt::QueuedConnection*/);
-        LOG_DEBUG("[Clnt]BTConnection manager init started");
+        qCDebug(lcSyncMLPlugin) << "[Clnt]BTConnection manager init started";
 
         QTime dieTime= QTime::currentTime().addSecs(2);
         while (!btManager->isOperational() && (QTime::currentTime() < dieTime))
@@ -70,23 +70,23 @@ BTConnection::BTConnection()
     }
     else
     {
-        LOG_CRITICAL("[Clnt]BTConnection manager init failed");
+        qCCritical(lcSyncMLPlugin) << "[Clnt]BTConnection manager init failed";
     }
 }
 
 BTConnection::~BTConnection()
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
     disconnect();
 }
 
 void BTConnection::initBluez5ManagerJobResult(BluezQt::InitManagerJob* job)
 {
 
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     if (job->error()) {
-        LOG_CRITICAL("[Clnt]BTConnection manager init error: " << job->errorText());
+        qCCritical(lcSyncMLPlugin) << "[Clnt]BTConnection manager init error: " << job->errorText();
         return;
     }
 
@@ -95,36 +95,36 @@ void BTConnection::initBluez5ManagerJobResult(BluezQt::InitManagerJob* job)
 
     if (!btManager->isBluetoothOperational()) {
         if (btManager->isBluetoothBlocked())
-            LOG_WARNING("[Clnt]BTConnection manager init failed (adapter is blocked)");
+            qCWarning(lcSyncMLPlugin) << "[Clnt]BTConnection manager init failed (adapter is blocked)";
         else
-            LOG_CRITICAL("[Clnt]BTConnection manager init failed (not operational)");
+            qCCritical(lcSyncMLPlugin) << "[Clnt]BTConnection manager init failed (not operational)";
         return;
     }
 
-    LOG_DEBUG ("[Clnt]BTConnection manager init done");
+    qCDebug(lcSyncMLPlugin) << "[Clnt]BTConnection manager init done";
 }
 
 void BTConnection::setConnectionInfo( const QString& aBTAddress,
                                       const QString& aServiceUUID )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
     iBTAddress = aBTAddress;
     iServiceUUID = aServiceUUID;
 }
 
 int BTConnection::connect()
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     if( iFd != -1 ) {
-        LOG_DEBUG( "[Clnt]BTConnection: Using existing connection" );
+        qCDebug(lcSyncMLPlugin) << "[Clnt]BTConnection: Using existing connection";
         return iFd;
     }
 
     iDevice = connectDevice( iBTAddress, iServiceUUID );
 
     if( iDevice.isEmpty() ) {
-        LOG_CRITICAL("[Clnt]BTConnection: Could not connect to device" << iBTAddress << ", aborting" );
+        qCCritical(lcSyncMLPlugin) << "Could not connect to device" << iBTAddress << ", aborting";
         return -1;
     }
 
@@ -143,7 +143,7 @@ int BTConnection::connect()
     } while ((--retryCount > 0) && (iFd == -1));
 
     if( iFd == -1 ) {
-        LOG_CRITICAL( "[Clnt]BTConnection: Could not open file descriptor of the connection, aborting" );
+        qCCritical(lcSyncMLPlugin) << "[Clnt]BTConnection: Could not open file descriptor of the connection, aborting";
         disconnectDevice( iBTAddress, iDevice );
         return -1;
     }
@@ -168,7 +168,7 @@ bool BTConnection::isConnected() const
 
 void BTConnection::disconnect()
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     if( iFd != -1 ) {
         close( iFd );
@@ -183,18 +183,18 @@ void BTConnection::disconnect()
 
 QString BTConnection::connectDevice( const QString& aBTAddress, const QString& aServiceUUID )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     BluezQt::DevicePtr dev = btManager->deviceForAddress(aBTAddress);
     if (!dev) {
-        LOG_WARNING("[Clnt]Device query failed for addr: " << aBTAddress);
+        qCWarning(lcSyncMLPlugin) << "[Clnt]Device query failed for addr: " << aBTAddress;
         return QString();
     }
 
     QStringList props = dev->uuids();
     if (!props.contains(aServiceUUID), Qt::CaseInsensitive) {
-        LOG_WARNING("[Clnt]Device does not provide SyncML Service: " << aServiceUUID);
-        LOG_WARNING("[Clnt]Device properties: " << props.join(", "));
+        qCWarning(lcSyncMLPlugin) << "[Clnt]Device does not provide SyncML Service: " << aServiceUUID;
+        qCWarning(lcSyncMLPlugin) << "[Clnt]Device properties: " << props.join(", ");
         return QString();
     }
 
@@ -202,13 +202,13 @@ QString BTConnection::connectDevice( const QString& aBTAddress, const QString& a
     call->waitForFinished();
 
     if (call->error()) {
-        LOG_CRITICAL( "[Clnt]Could not connect to device "
-                << aBTAddress << " with service uuid " << aServiceUUID );
-        LOG_CRITICAL( "[Clnt]Reason:" <<  call->errorText() );
+        qCCritical(lcSyncMLPlugin) << "[Clnt]Could not connect to device "
+                << aBTAddress << " with service uuid " << aServiceUUID ;
+        qCCritical(lcSyncMLPlugin) << "[Clnt]Reason:" <<  call->errorText();
         return QString();
     }
 
-    LOG_DEBUG("Device connected:" << aBTAddress );
+    qCDebug(lcSyncMLPlugin) << "Device connected:" << aBTAddress;
 
     // FIXME
     // not sure what this call was returning in BlueZ4
@@ -220,12 +220,12 @@ QString BTConnection::connectDevice( const QString& aBTAddress, const QString& a
 void BTConnection::disconnectDevice( const QString& aBTAddress, const QString& aDevice )
 {
     Q_UNUSED(aDevice);
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     BluezQt::DevicePtr dev = btManager->deviceForAddress(aBTAddress);
     if (!dev)
     {
-        LOG_WARNING("[Clnt]Device query failed for addr: " << aBTAddress);
+        qCWarning(lcSyncMLPlugin) << "[Clnt]Device query failed for addr: " << aBTAddress;
         return;
     }
 
@@ -233,18 +233,18 @@ void BTConnection::disconnectDevice( const QString& aBTAddress, const QString& a
     call->waitForFinished();
     int err = call->error() ;
     if ( err && err != BluezQt::PendingCall::NotConnected ) {
-        LOG_CRITICAL( "[Clnt]Could not diconnect from device " << aBTAddress );
-        LOG_CRITICAL( "[Clnt]Reason:" <<  call->errorText() );
+        qCCritical(lcSyncMLPlugin) << "[Clnt]Could not diconnect from device " << aBTAddress;
+        qCCritical(lcSyncMLPlugin) << "[Clnt]Reason:" <<  call->errorText();
     }
 
-    LOG_DEBUG( "Device disconnected:" << aBTAddress );
+    qCDebug(lcSyncMLPlugin) << "Device disconnected:" << aBTAddress;
 
     iDevice.clear();
 }
 
 bool BTConnection::fdRawMode( int aFD )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     struct termios mode;
 

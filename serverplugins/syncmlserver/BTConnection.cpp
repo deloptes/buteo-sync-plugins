@@ -21,7 +21,7 @@
 * 02110-1301 USA
 */
 
-#include <LogMacros.h>
+#include "BTConnection.h"
 #include <stdint.h>
 #include <sys/socket.h>
 #include <errno.h>
@@ -32,7 +32,7 @@
 #include <initmanagerjob.h>
 #include <pendingcall.h>
 
-#include "BTConnection.h"
+#include "SyncMLPluginLogging.h"
 
 const QString BTSRS_PATH ("/etc/buteo/plugins/syncmlserver");
 const QString CLIENT_BT_SR_FILE ("syncml_client_sdp_record.xml");
@@ -61,14 +61,13 @@ BTConnection::BTConnection() :
    mServerFdWatching (false), mClientFdWatching (false),
    btManager(0), clientProfile(0), serverProfile(0)
 {
-    FUNCTION_CALL_TRACE;
-
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 }
 
 BTConnection::~BTConnection ()
 {
-    FUNCTION_CALL_TRACE;
-    LOG_DEBUG ("BTConnection::~BTConnection ");
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
+    qCDebug(lcSyncMLPlugin) << "BTConnection::~BTConnection ";
 
     if (mServerReadNotifier) {
         delete mServerReadNotifier;
@@ -123,10 +122,10 @@ BTConnection::~BTConnection ()
 
 void BTConnection::initBluez5ManagerJobResult(BluezQt::InitManagerJob* job)
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     if (job->error()) {
-        LOG_CRITICAL("[Srvr]BTConnection manager init error: " << job->errorText());
+        qCCritical(lcSyncMLPlugin) << "[Srvr]BTConnection manager init error: " << job->errorText();
         return;
     }
 
@@ -135,15 +134,15 @@ void BTConnection::initBluez5ManagerJobResult(BluezQt::InitManagerJob* job)
 
     if (!btManager->isBluetoothOperational()) {
         if (btManager->isBluetoothBlocked())
-            LOG_WARNING("[Srvr]BTConnection manager init failed (adapter is blocked)");
+            qCWarning(lcSyncMLPlugin) << "[Srvr]BTConnection manager init failed (adapter is blocked)";
         else
-            LOG_CRITICAL("[Srvr]BTConnection manager init failed (BT not operational)");
+            qCCritical(lcSyncMLPlugin) << "[Srvr]BTConnection manager init failed (BT not operational)";
         return;
     }
 
     // Add client and server bluetooth sdp records
     if (!addServiceRecords()) {
-        LOG_WARNING ("[Srvr]Error in creating the SDP records");
+        qCWarning(lcSyncMLPlugin) << "[Srvr]Error in creating the SDP records";
         return;
     }
 
@@ -152,7 +151,7 @@ void BTConnection::initBluez5ManagerJobResult(BluezQt::InitManagerJob* job)
     mClientFd = openBTSocket (BT_CLIENT_CHANNEL);
 
     if (mServerFd == -1 || mClientFd == -1) {
-        LOG_WARNING ("[Srvr]Error in opening BT client or server socket");
+        qCWarning(lcSyncMLPlugin) << "[Srvr]Error in opening BT client or server socket";
         removeServiceRecords();
         return;
     }
@@ -160,13 +159,13 @@ void BTConnection::initBluez5ManagerJobResult(BluezQt::InitManagerJob* job)
     addFdListener (BT_SERVER_CHANNEL, mServerFd);
     addFdListener (BT_CLIENT_CHANNEL, mClientFd);
 
-    LOG_INFO ("[Srvr]BTConnection manager init done");
+    qCInfo(lcSyncMLPlugin) << "[Srvr]BTConnection manager init done";
 }
 
 int
 BTConnection::connect ()
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
     
     return mPeerSocket;
 }
@@ -174,7 +173,7 @@ BTConnection::connect ()
 bool
 BTConnection::isConnected () const
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     if (mPeerSocket == -1)
         return false;
@@ -185,17 +184,17 @@ BTConnection::isConnected () const
 void
 BTConnection::disconnect ()
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
     closeBTSocket(mPeerSocket);
 }
 
 void
 BTConnection::handleSyncFinished (bool isSyncInError)
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     if (isSyncInError == true) {
-        LOG_WARNING ("[Srvr]Sync finished with error. Resetting now.");
+        qCWarning(lcSyncMLPlugin) << "[Srvr]Sync finished with error. Resetting now.";
         // If sync error, then close the BT connection and reopen it
         removeFdListener (BT_SERVER_CHANNEL);
         removeFdListener (BT_CLIENT_CHANNEL);
@@ -208,7 +207,7 @@ BTConnection::handleSyncFinished (bool isSyncInError)
         addFdListener (BT_CLIENT_CHANNEL, mClientFd);
     } else {
         // No errors during sync. Add the fd listener
-        LOG_DEBUG ("[Srvr]Sync successfully finished.");
+        qCDebug(lcSyncMLPlugin) << "[Srvr]Sync successfully finished.";
         addFdListener (BT_SERVER_CHANNEL, mServerFd);
         addFdListener (BT_CLIENT_CHANNEL, mClientFd);
     }
@@ -217,17 +216,17 @@ BTConnection::handleSyncFinished (bool isSyncInError)
 int
 BTConnection::openBTSocket (const int channelNumber)
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     int sock = socket (AF_BLUETOOTH, SOCK_STREAM, BT_RFCOMM_PROTO);
     if (sock < 0) {
-        LOG_WARNING ("[Srvr]Unable to open bluetooth socket");
+        qCWarning(lcSyncMLPlugin) << "[Srvr]Unable to open bluetooth socket";
         return -1;
     }
 
     int lm = RFCOMM_LM_SECURE;
     if (setsockopt (sock, SOL_RFCOMM, RFCOMM_LM, &lm, sizeof (lm)) < 0) {
-        LOG_WARNING ("[Srvr]Unable to set socket options." << errno);
+        qCWarning(lcSyncMLPlugin) << "[Srvr]Unable to set socket options." << errno;
         return -1;
     }
 
@@ -241,35 +240,35 @@ BTConnection::openBTSocket (const int channelNumber)
 
     // Bind the socket
     if (bind (sock, (struct sockaddr*)&localAddr, sizeof (localAddr)) < 0) {
-        LOG_WARNING ("[Srvr]Unable to bind to local address");
+        qCWarning(lcSyncMLPlugin) << "[Srvr]Unable to bind to local address";
         return -1;
     }
 
     // Listen for incoming connections
     if (listen (sock, 1) < 0) { // We allow a max of 1 connection per SyncML session
-        LOG_WARNING ("[Srvr]Error while starting listening");
+        qCWarning(lcSyncMLPlugin) << "[Srvr]Error while starting listening";
         return -1;
     }
 
     // Set the socket into non-blocking mode
     long flags = fcntl (sock, F_GETFL);
     if (flags < 0) {
-        LOG_WARNING ("[Srvr]Error while getting flags for socket");
+        qCWarning(lcSyncMLPlugin) << "[Srvr]Error while getting flags for socket";
     } else {
         flags |= O_NONBLOCK;
         if (fcntl (sock, F_SETFL, flags) < 0) {
-            LOG_WARNING ("[Srvr]Error while setting socket into non-blocking mode");
+            qCWarning(lcSyncMLPlugin) << "[Srvr]Error while setting socket into non-blocking mode";
         }
     }
 
-    LOG_DEBUG ("[Srvr]Opened BT socket with fd " << sock << " for channel " << channelNumber);
+    qCDebug(lcSyncMLPlugin) << "[Srvr]Opened BT socket with fd " << sock << " for channel " << channelNumber;
     return sock;
 }
 
 void
 BTConnection::closeBTSocket (int& fd)
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     if (fd != -1) {
         close (fd);
@@ -280,7 +279,7 @@ BTConnection::closeBTSocket (int& fd)
 void
 BTConnection::addFdListener (const int channelNumber, int fd)
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     if ((channelNumber == BT_SERVER_CHANNEL) && (mServerFdWatching == false) && (fd != -1)) {
         mServerReadNotifier = new QSocketNotifier (fd, QSocketNotifier::Read);
@@ -298,7 +297,7 @@ BTConnection::addFdListener (const int channelNumber, int fd)
         QObject::connect (mServerExceptionNotifier, SIGNAL (activated(int)),
                         this, SLOT (handleBTError(int)));
 
-        LOG_DEBUG ("[Srvr]Added listener for server socket " << fd);
+        qCDebug(lcSyncMLPlugin) << "[Srvr]Added listener for server socket " << fd;
         mServerFdWatching = true;
     }
 
@@ -318,7 +317,7 @@ BTConnection::addFdListener (const int channelNumber, int fd)
         QObject::connect (mClientExceptionNotifier, SIGNAL (activated(int)),
                         this, SLOT (handleBTError(int)));
 
-        LOG_DEBUG ("[Srvr]Added listener for client socket " << fd);
+        qCDebug(lcSyncMLPlugin) << "[Srvr]Added listener for client socket " << fd;
         mClientFdWatching = true;
     }
 
@@ -328,7 +327,7 @@ BTConnection::addFdListener (const int channelNumber, int fd)
 void
 BTConnection::removeFdListener (const int channelNumber)
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     if (channelNumber == BT_SERVER_CHANNEL) {
         mServerReadNotifier->setEnabled (false);
@@ -361,7 +360,7 @@ BTConnection::removeFdListener (const int channelNumber)
 //    @todo do we need it here - was it forgotten or intentionally missing
 //    see above addFdListener - it looks like it is not used at all
 //    mDisconnected = true;
-    LOG_DEBUG ("[Srvr]Removed listener for channel" << channelNumber);
+    qCDebug(lcSyncMLPlugin) << "[Srvr]Removed listener for channel" << channelNumber;
 }
 
 void
@@ -376,8 +375,8 @@ BTConnection::handleDisconnectRequest(QString device)
 void
 BTConnection::handleIncomingBTConnection (int fd)
 {
-    FUNCTION_CALL_TRACE;
-    LOG_DEBUG ("Incoming BT connection fd(" << fd << ")");
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
+    qCDebug(lcSyncMLPlugin) << "Incoming BT connection fd(" << fd << ")";
 
     mPeerSocket = dup(fd);
 
@@ -390,20 +389,20 @@ BTConnection::handleIncomingBTConnection (int fd)
         btAddr = serverProfile->deviceAddress();
         serverProfile->release();
     } else {
-        LOG_CRITICAL ("BT Address of peer not known");
+        qCCritical(lcSyncMLPlugin) << "BT Address of peer not known";
         return;
     }
-    LOG_DEBUG ("Connection from device: " << btAddr);
+    qCDebug(lcSyncMLPlugin) << "Connection from device: " << btAddr;
 
     if (!btAddr.isEmpty()) {
         // Set the socket into non-blocking mode
         long flags = fcntl (mPeerSocket, F_GETFL);
         if (flags < 0) {
-            LOG_WARNING ("[BTConn]Error while getting flags for socket");
+            qCWarning(lcSyncMLPlugin) << "[BTConn]Error while getting flags for socket";
         } else {
             flags |= O_NONBLOCK;
             if (mPeerSocket == -1 || fcntl (mPeerSocket, F_SETFL, flags) < 0) {
-                LOG_WARNING ("[BTConn]Error while setting socket into non-blocking mode");
+                qCWarning(lcSyncMLPlugin) << "[BTConn]Error while setting socket into non-blocking mode";
             }
         }
         emit btConnected (mPeerSocket, btAddr);
@@ -419,8 +418,8 @@ BTConnection::handleIncomingBTConnection (int fd)
 void
 BTConnection::handleBTError (int fd)
 {
-    FUNCTION_CALL_TRACE;
-    LOG_DEBUG ("[Srvr]Error in BT connection");
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
+    qCDebug(lcSyncMLPlugin) << "[Srvr]Error in BT connection";
     
     // Should this be similar to USB that we close and re-init BT?
     
@@ -446,7 +445,7 @@ BTConnection::handleBTError (int fd)
 bool
 BTConnection::init ()
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     // Initialize BluezQt
     btManager = new BluezQt::Manager(this);
@@ -456,18 +455,18 @@ BTConnection::init ()
         QObject::connect(initJob, &BluezQt::InitManagerJob::result,
                 this, &BTConnection::initBluez5ManagerJobResult/*,
                     Qt::QueuedConnection*/);
-        LOG_DEBUG("[Srvr]BTConnection manager init started");
+        qCDebug(lcSyncMLPlugin) << "[Srvr]BTConnection manager init started";
         return true;
     } else {
-        LOG_CRITICAL("[Srvr]BTConnection manager init failed");
+        qCCritical(lcSyncMLPlugin) << "[Srvr]BTConnection manager init failed";
         return false;
     }
 }
 
 void BTConnection::uninit()
 {
-    FUNCTION_CALL_TRACE
-    LOG_DEBUG ("[Srvr]BTConnection::uninit");
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
+    qCDebug(lcSyncMLPlugin) << "[Srvr]BTConnection::uninit";
 
     // Remove listeners
     removeFdListener (BT_SERVER_CHANNEL);
@@ -512,13 +511,13 @@ void BTConnection::uninit()
 bool
 BTConnection::addServiceRecords ()
 {
-    FUNCTION_CALL_TRACE
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     // use first adapter and check if profile was already registered
     // if registered we should not try registering once again
     BluezQt::AdapterPtr adapter = btManager->adapters().first();
-    LOG_DEBUG("[Srvr] adapter " << adapter->address());
-    LOG_DEBUG("[Srvr] adapter uuids" << adapter->uuids());
+    qCDebug(lcSyncMLPlugin) << "[Srvr] adapter " << adapter->address();
+    qCDebug(lcSyncMLPlugin) << "[Srvr] adapter uuids" << adapter->uuids();
 
     QByteArray clientSDP;
     if (!readSRFromFile (CLIENT_BT_SR_FILE, clientSDP)) {
@@ -532,7 +531,7 @@ BTConnection::addServiceRecords ()
         callCP->waitForFinished();
 
         if (callCP->error()) {
-            LOG_WARNING ("[Srvr]Error registering client profile" << callCP->errorText());
+            qCWarning(lcSyncMLPlugin) << "[Srvr]Error registering client profile" << callCP->errorText();
             return false;
         }
     }
@@ -540,7 +539,7 @@ BTConnection::addServiceRecords ()
             this, &BTConnection::handleIncomingBTConnection);
     QObject::connect(clientProfile, &SdpProfile::disconnectRequest,
             this, &BTConnection::handleDisconnectRequest);
-    LOG_DEBUG("[Srvr]Client profile registered");
+    qCDebug(lcSyncMLPlugin) << "[Srvr]Client profile registered";
 
     QByteArray serverSDP;
     if (!readSRFromFile (SERVER_BT_SR_FILE, serverSDP)) {
@@ -553,7 +552,7 @@ BTConnection::addServiceRecords ()
         BluezQt::PendingCall *callSP = btManager->registerProfile(serverProfile);
         callSP->waitForFinished();
         if (callSP->error()) {
-            LOG_WARNING ("[Srvr]Error registering server profile" << callSP->errorText());
+            qCWarning(lcSyncMLPlugin) << "[Srvr]Error registering server profile" << callSP->errorText();
             return false;
         }
     }
@@ -562,7 +561,7 @@ BTConnection::addServiceRecords ()
             this, &BTConnection::handleIncomingBTConnection);
     QObject::connect(serverProfile, &SdpProfile::disconnectRequest,
             this, &BTConnection::handleDisconnectRequest);
-    LOG_DEBUG("[Srvr]Server profile registered");
+    qCDebug(lcSyncMLPlugin) << "[Srvr]Server profile registered";
 
     return true;
 }
@@ -570,7 +569,7 @@ BTConnection::addServiceRecords ()
 bool
 BTConnection::removeServiceRecords ()
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     BluezQt::AdapterPtr adapter = btManager->adapters().first();
 
@@ -578,7 +577,7 @@ BTConnection::removeServiceRecords ()
         BluezQt::PendingCall *c1 = btManager->unregisterProfile (clientProfile);
         c1->waitForFinished ();
         if (c1->error() != 0) {
-            LOG_WARNING ("[Srvr]Unregister Client profile failed: " << c1->errorText());
+            qCWarning(lcSyncMLPlugin) << "[Srvr]Unregister Client profile failed: " << c1->errorText();
         }
     }
 
@@ -586,7 +585,7 @@ BTConnection::removeServiceRecords ()
         BluezQt::PendingCall *c2 = btManager->unregisterProfile (serverProfile);
         c2->waitForFinished ();
         if (c2->error() != 0) {
-            LOG_WARNING ("[Srvr]Unregister Server profile failed: " << c2->errorText());
+            qCWarning(lcSyncMLPlugin) << "[Srvr]Unregister Server profile failed: " << c2->errorText();
         }
     }
 
@@ -597,12 +596,12 @@ BTConnection::removeServiceRecords ()
 bool
 BTConnection::readSRFromFile (const QString filename, QByteArray &record)
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     QDir dir(BTSRS_PATH);
     QFile srFile (dir.filePath(filename));
     if (!srFile.open (QIODevice::ReadOnly)) {
-        LOG_WARNING ("Unable to open service record files");
+        qCWarning(lcSyncMLPlugin) << "Unable to open service record files";
         return false;
     }
 
@@ -615,7 +614,7 @@ BTConnection::readSRFromFile (const QString filename, QByteArray &record)
 const QString
 BTConnection::clientServiceRecordDef () const
 {
-    FUNCTION_CALL_TRACE
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
     return
 "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>                        \
 <!-- As per the SyncML OBEX Binding for BT specification at         \
@@ -663,7 +662,7 @@ BTConnection::clientServiceRecordDef () const
 const QString
 BTConnection::serverServiceRecordDef () const
 {
-    FUNCTION_CALL_TRACE
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
     return
 "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>                        \
 <!-- As per the SyncML OBEX Binding for BT specification at         \

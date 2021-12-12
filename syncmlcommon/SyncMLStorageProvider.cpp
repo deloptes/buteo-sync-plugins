@@ -35,17 +35,17 @@
 #include "SyncMLCommon.h"
 #include "StorageAdapter.h"
 
-#include <LogMacros.h>
+#include "SyncMLPluginLogging.h"
 
 SyncMLStorageProvider::SyncMLStorageProvider()
  : iProfile( 0 ), iPlugin( 0 ), iCbInterface( 0 ), iRequestStorages( false )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 }
 
 SyncMLStorageProvider::~SyncMLStorageProvider()
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 }
 
 bool SyncMLStorageProvider::init( Buteo::Profile* aProfile,
@@ -53,10 +53,10 @@ bool SyncMLStorageProvider::init( Buteo::Profile* aProfile,
                                   Buteo::PluginCbInterface* aCbInterface,
                                   bool aRequestStorages )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     if( !aProfile || !aPlugin || !aCbInterface ) {
-        LOG_CRITICAL( "NULL parameters passed to init()" );
+        qCCritical(lcSyncMLPlugin) << "NULL parameters passed to init()";
         return false;
     }
 
@@ -70,7 +70,7 @@ bool SyncMLStorageProvider::init( Buteo::Profile* aProfile,
 
 bool SyncMLStorageProvider::uninit()
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     return true;
 }
@@ -86,14 +86,14 @@ QString SyncMLStorageProvider::getPreferredURINames( const QString &aURI )
 bool SyncMLStorageProvider::getStorageContentFormatInfo( const QString& aURI,
                                                          DataSync::StorageContentFormatInfo& aInfo )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     const Buteo::Profile* storageProfile =
             iProfile->subProfileByKeyValue( STORAGE_SOURCE_URI, aURI,
                                             Buteo::Profile::TYPE_STORAGE, true );
 
     if( !storageProfile ) {
-        LOG_DEBUG( "Could not find storage for URI" << aURI );
+        qCDebug(lcSyncMLPlugin) << "Could not find storage for URI" << aURI;
         return false;
     }
 
@@ -114,9 +114,9 @@ bool SyncMLStorageProvider::getStorageContentFormatInfo( const QString& aURI,
 
 DataSync::StoragePlugin* SyncMLStorageProvider::acquireStorageByURI( const QString& aURI )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
-    LOG_DEBUG( "Incoming request to acquire storage by URI:" << aURI );
+    qCDebug(lcSyncMLPlugin) << "Incoming request to acquire storage by URI:" << aURI ;
 
 #if 0
     QString preferredURI = getPreferredURINames( aURI );
@@ -127,31 +127,31 @@ DataSync::StoragePlugin* SyncMLStorageProvider::acquireStorageByURI( const QStri
                                             Buteo::Profile::TYPE_STORAGE, true );
 
     if( !storageProfile ) {
-        LOG_DEBUG( "Could not find storage for URI" << aURI );
+        qCDebug(lcSyncMLPlugin) << "Could not find storage for URI" << aURI;
         return NULL;
     }
 
-    LOG_DEBUG( "Found storage for URI" << aURI << ":" << storageProfile->name() );
+    qCDebug(lcSyncMLPlugin) << "Found storage for URI" << aURI << ":" << storageProfile->name();
 
     return acquireStorage( storageProfile );
 }
 
 DataSync::StoragePlugin* SyncMLStorageProvider::acquireStorageByMIME( const QString& aMIME )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
-    LOG_DEBUG( "Incoming request to acquire storage by MIME:" << aMIME );
+    qCDebug(lcSyncMLPlugin) << "Incoming request to acquire storage by MIME:" << aMIME;
 
     const Buteo::Profile* storageProfile =
             iProfile->subProfileByKeyValue( STORAGE_DEFAULT_MIME_PROP, aMIME,
                                             Buteo::Profile::TYPE_STORAGE, true );
 
     if( !storageProfile ) {
-        LOG_DEBUG( "Could not find storage for MIME" << aMIME );
+        qCDebug(lcSyncMLPlugin) << "Could not find storage for MIME" << aMIME;
         return NULL;
     }
 
-    LOG_DEBUG( "Found storage for MIME" << aMIME << ":" << storageProfile->name() );
+    qCDebug(lcSyncMLPlugin) << "Found storage for MIME" << aMIME << ":" << storageProfile->name();
 
     return acquireStorage( storageProfile );
 
@@ -159,17 +159,17 @@ DataSync::StoragePlugin* SyncMLStorageProvider::acquireStorageByMIME( const QStr
 
 void SyncMLStorageProvider::releaseStorage( DataSync::StoragePlugin* aStorage )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     if (!aStorage)
         return;
 
-    LOG_DEBUG( "Incoming request to release storage with source URI" << aStorage->getSourceURI() );
+    qCDebug(lcSyncMLPlugin) << "Incoming request to release storage with source URI" << aStorage->getSourceURI();
 
     StorageAdapter* adapter = static_cast<StorageAdapter*>( aStorage );
 
     if( !adapter->uninit() ) {
-        LOG_WARNING( "Storage adapter uninitialization failed" );
+        qCWarning(lcSyncMLPlugin) << "Storage adapter uninitialization failed";
     }
 
     Buteo::StoragePlugin* storage = adapter->getPlugin();
@@ -177,7 +177,7 @@ void SyncMLStorageProvider::releaseStorage( DataSync::StoragePlugin* aStorage )
     QString backend = storage->getProperty( Buteo::KEY_BACKEND );
 
     if( !storage->uninit() ) {
-        LOG_WARNING( "Storage uninitialization failed" );
+        qCWarning(lcSyncMLPlugin) << "Storage uninitialization failed";
     }
 
     iCbInterface->destroyStorage( storage );
@@ -192,7 +192,7 @@ void SyncMLStorageProvider::releaseStorage( DataSync::StoragePlugin* aStorage )
 
 DataSync::StoragePlugin* SyncMLStorageProvider::acquireStorage( const Buteo::Profile* aProfile )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     if (!aProfile)
         return NULL;
@@ -204,24 +204,24 @@ DataSync::StoragePlugin* SyncMLStorageProvider::acquireStorage( const Buteo::Pro
 
     if(!uuid.isEmpty() && !remoteName.isEmpty())
     {
-        LOG_DEBUG("uuid and remote name fetched from profile" << uuid << remoteName);
+        qCDebug(lcSyncMLPlugin) << "uuid and remote name fetched from profile" << uuid << remoteName;
     }
     if(!iUUID.isEmpty() && !iRemoteName.isEmpty())
     {
         uuid = iUUID;
         remoteName = iRemoteName;
-        LOG_DEBUG("uuid and remote name created on the fly" << uuid << remoteName);
+        qCDebug(lcSyncMLPlugin) << "uuid and remote name created on the fly" << uuid << remoteName;
     }
 
     if( iRequestStorages && !iCbInterface->requestStorage( backend, iPlugin ) ) {
-        LOG_CRITICAL( "Could not reserve storage backend:" << backend );
+        qCCritical(lcSyncMLPlugin) << "Could not reserve storage backend:" << backend;
     }
 
     Buteo::StoragePlugin* storage = iCbInterface->createStorage( pluginName );
 
     if( !storage ) {
         iCbInterface->releaseStorage( backend, iPlugin );
-        LOG_DEBUG( "Could not create storage:" << pluginName );
+        qCDebug(lcSyncMLPlugin) << "Could not create storage:" << pluginName;
         return NULL;
     }
 
@@ -261,7 +261,7 @@ DataSync::StoragePlugin* SyncMLStorageProvider::acquireStorage( const Buteo::Pro
     }
 
     if( !storage->init( keys ) ) {
-        LOG_DEBUG( "Could not initialize storage:" << pluginName );
+        qCDebug(lcSyncMLPlugin) << "Could not initialize storage:" << pluginName;
         iCbInterface->destroyStorage( storage );
         iCbInterface->releaseStorage( backend, iPlugin );
         return NULL;
@@ -271,7 +271,7 @@ DataSync::StoragePlugin* SyncMLStorageProvider::acquireStorage( const Buteo::Pro
 
     if( !adapter->init() ) {
 
-        LOG_DEBUG("Initialization of adapter for storage" << pluginName << "FAILED" );
+        qCDebug(lcSyncMLPlugin) << "Initialization of adapter for storage" << pluginName << "FAILED";
         iCbInterface->destroyStorage( storage );
         iCbInterface->releaseStorage( backend, iPlugin );
         delete adapter;

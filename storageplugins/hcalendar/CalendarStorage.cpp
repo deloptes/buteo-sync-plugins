@@ -31,7 +31,7 @@
 #include "SyncMLCommon.h"
 #include "SyncMLConfig.h"
 
-#include <LogMacros.h>
+#include "SyncMLPluginLogging.h"
 
 // @todo: Because CalendarMaemo does not support batched operations ( or it does
 //        but we can't use it as we cannot retrieve the id's of committed items ),
@@ -44,7 +44,7 @@ const char* CTCAPSFILENAME12 = "CTCaps_calendar_12.xml";
 CalendarStorage::CalendarStorage( const QString& aPluginName )
 : Buteo::StoragePlugin(aPluginName)
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     iCommitNow = true;
     iStorageType = VCALENDAR_FORMAT;
@@ -52,12 +52,12 @@ CalendarStorage::CalendarStorage( const QString& aPluginName )
 
 CalendarStorage::~CalendarStorage()
 {
-	FUNCTION_CALL_TRACE;
+	FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 }
 
 bool CalendarStorage::init( const QMap<QString, QString>& aProperties )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     iProperties = aProperties;
 
@@ -70,14 +70,14 @@ bool CalendarStorage::init( const QMap<QString, QString>& aProperties )
 
     if( iProperties[CALENDAR_FORMAT] == CALENDAR_FORMAT_ICAL )
     {
-        LOG_DEBUG("The calendar storage is using icalendar format");
+        qCDebug(lcSyncMLPlugin) << "The calendar storage is using icalendar format";
         iStorageType = ICALENDAR_FORMAT;
         iProperties[STORAGE_DEFAULT_MIME_PROP] = "text/calendar";
         iProperties[STORAGE_DEFAULT_MIME_VERSION_PROP] = "2.0";
     }
     else
     {
-        LOG_DEBUG("The calendar storage is using vcalendar format");
+        qCDebug(lcSyncMLPlugin) << "The calendar storage is using vcalendar format";
         iStorageType = VCALENDAR_FORMAT;
     }
 
@@ -89,161 +89,161 @@ bool CalendarStorage::init( const QMap<QString, QString>& aProperties )
 
 bool CalendarStorage::uninit()
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     return iCalendar.uninit();
 }
 
 bool CalendarStorage::getAllItems( QList<Buteo::StorageItem*>& aItems )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
-    LOG_DEBUG( "Retrieving all calendar events and todo's" );
+    qCDebug(lcSyncMLPlugin) <<  "Retrieving all calendar events and todo's";
 
     KCalendarCore::Incidence::List incidences;
 
     if( !iCalendar.getAllIncidences( incidences ) ) {
-        LOG_DEBUG( "Could not retrieve all calendar events and todo's" );
+        qCDebug(lcSyncMLPlugin) <<  "Could not retrieve all calendar events and todo's";
         return false;
     }
 
     retrieveItems( incidences, aItems );
 
-    LOG_DEBUG( "Found" << aItems.count() << "items" );
+    qCDebug(lcSyncMLPlugin) <<  "Found" << aItems.count() << "items";
 
     return true;
 }
 
 bool CalendarStorage::getAllItemIds( QList<QString>& aItemIds )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
-    LOG_DEBUG( "Retrieving all calendar events and todo's" );
+    qCDebug(lcSyncMLPlugin) <<  "Retrieving all calendar events and todo's";
 
     KCalendarCore::Incidence::List incidences;
 
     if( !iCalendar.getAllIncidences( incidences ) ) {
-        LOG_DEBUG( "Could not retrieve all calendar events and todo's" );
+        qCDebug(lcSyncMLPlugin) <<  "Could not retrieve all calendar events and todo's";
         return false;
     }
 
     retrieveIds( incidences, aItemIds );
 
-    LOG_DEBUG( "Found" << aItemIds.count() << "items" );
+    qCDebug(lcSyncMLPlugin) <<  "Found" << aItemIds.count() << "items";
 
     return true;
 }
 
 bool CalendarStorage::getNewItems( QList<Buteo::StorageItem*>& aNewItems, const QDateTime& aTime )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
-    LOG_DEBUG( "Retrieving new calendar events and todo's" );
+    qCDebug(lcSyncMLPlugin) <<  "Retrieving new calendar events and todo's";
 
     KCalendarCore::Incidence::List incidences;
 
     if( !iCalendar.getAllNew( incidences, normalizeTime( aTime ) ) ) {
-        LOG_DEBUG( "Could not retrieve new calendar events and todo's" );
+        qCDebug(lcSyncMLPlugin) <<  "Could not retrieve new calendar events and todo's";
         return false;
     }
 
     retrieveItems( incidences, aNewItems );
 
-    LOG_DEBUG( "Found" << aNewItems.count() << "new items" );
+    qCDebug(lcSyncMLPlugin) <<  "Found" << aNewItems.count() << "new items";
 
     return true;
 }
 
 bool CalendarStorage::getNewItemIds( QList<QString>& aNewItemIds, const QDateTime& aTime )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
-    LOG_DEBUG( "Retrieving new calendar events and todo's" );
+    qCDebug(lcSyncMLPlugin) <<  "Retrieving new calendar events and todo's";
 
     KCalendarCore::Incidence::List incidences;
 
     if( !iCalendar.getAllNew( incidences, normalizeTime( aTime ) ) ) {
-        LOG_DEBUG( "Could not retrieve new calendar events and todo's" );
+        qCDebug(lcSyncMLPlugin) <<  "Could not retrieve new calendar events and todo's";
         return false;
     }
 
     retrieveIds( incidences, aNewItemIds );
 
-    LOG_DEBUG( "Found" << aNewItemIds.count() << "new items" );
+    qCDebug(lcSyncMLPlugin) <<  "Found" << aNewItemIds.count() << "new items";
 
     return true;
 }
 
 bool CalendarStorage::getModifiedItems( QList<Buteo::StorageItem*>& aModifiedItems, const QDateTime& aTime )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
-    LOG_DEBUG( "Retrieving modified calendar events and todo's" );
+    qCDebug(lcSyncMLPlugin) <<  "Retrieving modified calendar events and todo's";
 
     KCalendarCore::Incidence::List incidences;
 
     if( !iCalendar.getAllModified( incidences, normalizeTime( aTime ) ) ) {
-        LOG_DEBUG( "Could not retrieve modified calendar events and todo's" );
+        qCDebug(lcSyncMLPlugin) <<  "Could not retrieve modified calendar events and todo's";
         return false;
     }
 
     retrieveItems( incidences, aModifiedItems );
 
-    LOG_DEBUG( "Found" << aModifiedItems.count() << "modified items" );
+    qCDebug(lcSyncMLPlugin) <<  "Found" << aModifiedItems.count() << "modified items";
 
     return true;
 }
 
 bool CalendarStorage::getModifiedItemIds( QList<QString>& aModifiedItemIds, const QDateTime& aTime )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
-    LOG_DEBUG( "Retrieving modified calendar events and todo's" );
+    qCDebug(lcSyncMLPlugin) <<  "Retrieving modified calendar events and todo's";
 
     KCalendarCore::Incidence::List incidences;
 
     if( !iCalendar.getAllModified( incidences, normalizeTime( aTime ) ) ) {
-        LOG_DEBUG( "Could not retrieve modified calendar events and todo's" );
+        qCDebug(lcSyncMLPlugin) <<  "Could not retrieve modified calendar events and todo's";
         return false;
     }
 
     retrieveIds( incidences, aModifiedItemIds );
 
-    LOG_DEBUG( "Found" << aModifiedItemIds.count() << "modified items" );
+    qCDebug(lcSyncMLPlugin) <<  "Found" << aModifiedItemIds.count() << "modified items";
 
     return true;
 }
 
 bool CalendarStorage::getDeletedItemIds( QList<QString>& aDeletedItemIds, const QDateTime& aTime )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
-    LOG_DEBUG( "Retrieving deleted calendar events and todo's" );
+    qCDebug(lcSyncMLPlugin) <<  "Retrieving deleted calendar events and todo's";
 
     KCalendarCore::Incidence::List incidences;
 
     if( !iCalendar.getAllDeleted( incidences, normalizeTime( aTime ) ) ) {
-        LOG_DEBUG( "Could not retrieve deleted calendar events and todo's" );
+        qCDebug(lcSyncMLPlugin) <<  "Could not retrieve deleted calendar events and todo's";
         return false;
     }
 
     retrieveIds( incidences, aDeletedItemIds );
 
-    LOG_DEBUG( "Found" << aDeletedItemIds.count() << "deleted items" );
+    qCDebug(lcSyncMLPlugin) <<  "Found" << aDeletedItemIds.count() << "deleted items";
 
     return true;
 }
 
 Buteo::StorageItem* CalendarStorage::newItem()
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     return new SimpleItem();
 }
 
 QList<Buteo::StorageItem*> CalendarStorage::getItems( const QStringList& aItemIdList )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     KCalendarCore::Incidence::List incidences;
     KCalendarCore::Incidence::Ptr item;
@@ -261,7 +261,7 @@ QList<Buteo::StorageItem*> CalendarStorage::getItems( const QStringList& aItemId
         }
         else
         {
-            LOG_WARNING("Could not find item " << id);
+            qCWarning(lcSyncMLPlugin) << "Could not find item " << id;
         }
     }
 
@@ -272,7 +272,7 @@ QList<Buteo::StorageItem*> CalendarStorage::getItems( const QStringList& aItemId
 
 Buteo::StorageItem* CalendarStorage::getItem( const QString& aItemId )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     KCalendarCore::Incidence::Ptr item = iCalendar.getIncidence( aItemId );
 
@@ -280,7 +280,7 @@ Buteo::StorageItem* CalendarStorage::getItem( const QString& aItemId )
         return retrieveItem( item );
     }
     else {
-        LOG_WARNING( "Could not find item:" << aItemId );
+        qCWarning(lcSyncMLPlugin) <<  "Could not find item:" << aItemId;
         return NULL;
     }
 
@@ -289,17 +289,17 @@ Buteo::StorageItem* CalendarStorage::getItem( const QString& aItemId )
 CalendarStorage::OperationStatus CalendarStorage::addItem( Buteo::StorageItem& aItem )
 {
 
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     KCalendarCore::Incidence::Ptr item = generateIncidence( aItem );
 
     if( !item ) {
-        LOG_WARNING( "Item has invalid format" );
+        qCWarning(lcSyncMLPlugin) <<  "Item has invalid format";
         return STATUS_INVALID_FORMAT;
     }
 
     if( !iCalendar.addIncidence( item, iCommitNow ) ) {
-        LOG_WARNING( "Could not add item" );
+        qCWarning(lcSyncMLPlugin) <<  "Could not add item";
         // no need to delete item as item is owned by backend
         return STATUS_ERROR;
     }
@@ -311,7 +311,7 @@ CalendarStorage::OperationStatus CalendarStorage::addItem( Buteo::StorageItem& a
         aItem.setId( item->uid() );
     }
 
-    LOG_DEBUG( "Item successfully added:" << aItem.getId() );
+    qCDebug(lcSyncMLPlugin) <<  "Item successfully added:" << aItem.getId();
 
     return STATUS_OK;
 
@@ -319,7 +319,7 @@ CalendarStorage::OperationStatus CalendarStorage::addItem( Buteo::StorageItem& a
 
 QList<CalendarStorage::OperationStatus> CalendarStorage::addItems( const QList<Buteo::StorageItem*>& aItems )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     QList<OperationStatus> results;
 
@@ -332,7 +332,7 @@ QList<CalendarStorage::OperationStatus> CalendarStorage::addItems( const QList<B
     //Do a batch commit now
     if( iCalendar.commitChanges() )
     {
-        LOG_DEBUG( "Items successfully added" );
+        qCDebug(lcSyncMLPlugin) <<  "Items successfully added";
     }
     iCommitNow = true; 
 
@@ -342,22 +342,22 @@ QList<CalendarStorage::OperationStatus> CalendarStorage::addItems( const QList<B
 
 CalendarStorage::OperationStatus CalendarStorage::modifyItem( Buteo::StorageItem& aItem )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     KCalendarCore::Incidence::Ptr item = generateIncidence( aItem );
 
     if( !item ) {
-        LOG_WARNING( "Item has invalid format" );
+        qCWarning(lcSyncMLPlugin) <<  "Item has invalid format";
         return STATUS_INVALID_FORMAT;
     }
     
     if( !iCalendar.modifyIncidence( item, aItem.getId(), iCommitNow ) ) {
-        LOG_WARNING( "Could not replace item:" << aItem.getId() );
+        qCWarning(lcSyncMLPlugin) <<  "Could not replace item:" << aItem.getId();
         // no need to delete item as item is owned by backend
         return STATUS_ERROR;
     }
 
-    LOG_DEBUG( "Item successfully replaced:" << aItem.getId() );
+    qCDebug(lcSyncMLPlugin) <<  "Item successfully replaced:" << aItem.getId();
 
     // modifyIncidence doesn't take ownership of the item, need to delete it.
     item.clear();
@@ -367,7 +367,7 @@ CalendarStorage::OperationStatus CalendarStorage::modifyItem( Buteo::StorageItem
 
 QList<CalendarStorage::OperationStatus> CalendarStorage::modifyItems( const QList<Buteo::StorageItem*>& aItems )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     QList<OperationStatus> results;
 
@@ -380,7 +380,7 @@ QList<CalendarStorage::OperationStatus> CalendarStorage::modifyItems( const QLis
     //Do a batch commit now
     if( iCalendar.commitChanges() )
     {
-        LOG_DEBUG( "Items successfully modified" );
+        qCDebug(lcSyncMLPlugin) <<  "Items successfully modified";
     }
     iCommitNow = true; 
 
@@ -389,7 +389,7 @@ QList<CalendarStorage::OperationStatus> CalendarStorage::modifyItems( const QLis
 
 CalendarStorage::OperationStatus CalendarStorage::deleteItem( const QString& aItemId )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     CalendarBackend::ErrorStatus error =  iCalendar.deleteIncidence( aItemId);
     CalendarStorage::OperationStatus status = mapErrorStatus(error);
@@ -398,7 +398,7 @@ CalendarStorage::OperationStatus CalendarStorage::deleteItem( const QString& aIt
 
 QList<CalendarStorage::OperationStatus> CalendarStorage::deleteItems( const QList<QString>& aItemIds )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     QList<OperationStatus> results;
 
@@ -411,13 +411,13 @@ QList<CalendarStorage::OperationStatus> CalendarStorage::deleteItems( const QLis
 
 KCalendarCore::Incidence::Ptr CalendarStorage::generateIncidence( Buteo::StorageItem& aItem )
 {
-	FUNCTION_CALL_TRACE;
+	FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     KCalendarCore::Incidence::Ptr incidence;
     QByteArray itemData;
 
     if( !aItem.read( 0, aItem.getSize(), itemData ) ) {
-        LOG_WARNING( "Could not read item data" );
+        qCWarning(lcSyncMLPlugin) <<  "Could not read item data";
         return incidence;
     }
 
@@ -438,7 +438,7 @@ KCalendarCore::Incidence::Ptr CalendarStorage::generateIncidence( Buteo::Storage
 
 void CalendarStorage::retrieveItems( KCalendarCore::Incidence::List& aIncidences, QList<Buteo::StorageItem*>& aItems )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     for( int i = 0; i < aIncidences.count(); ++i ) {
         Buteo::StorageItem* item = retrieveItem( aIncidences[i] );
@@ -448,7 +448,7 @@ void CalendarStorage::retrieveItems( KCalendarCore::Incidence::List& aIncidences
 
 Buteo::StorageItem* CalendarStorage::retrieveItem( KCalendarCore::Incidence::Ptr& aIncidence )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     QString data;
 
@@ -477,7 +477,7 @@ Buteo::StorageItem* CalendarStorage::retrieveItem( KCalendarCore::Incidence::Ptr
 
 void CalendarStorage::retrieveIds( KCalendarCore::Incidence::List& aIncidences, QList<QString>& aIds )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     for( int i = 0; i < aIncidences.count(); ++i ) {
         QString iID = aIncidences[i]->uid();
@@ -492,7 +492,7 @@ void CalendarStorage::retrieveIds( KCalendarCore::Incidence::List& aIncidences, 
 
 QDateTime CalendarStorage::normalizeTime( const QDateTime& aTime ) const
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     QDateTime normTime = aTime;
 
@@ -508,7 +508,7 @@ QDateTime CalendarStorage::normalizeTime( const QDateTime& aTime ) const
 
 QByteArray CalendarStorage::getCtCaps( const QString& aFilename ) const
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     QFile ctCapsFile( SyncMLConfig::getXmlDataPath() + aFilename  );
     QByteArray ctCaps;
@@ -517,7 +517,7 @@ QByteArray CalendarStorage::getCtCaps( const QString& aFilename ) const
        ctCaps = ctCapsFile.readAll();
        ctCapsFile.close();
     } else {
-        LOG_WARNING("Failed to open CTCaps file for calendar storage:" << aFilename );
+        qCWarning(lcSyncMLPlugin) << "Failed to open CTCaps file for calendar storage:" << aFilename;
     }
 
     return ctCaps;
@@ -527,7 +527,7 @@ QByteArray CalendarStorage::getCtCaps( const QString& aFilename ) const
 CalendarStorage::OperationStatus CalendarStorage::mapErrorStatus\
         (const CalendarBackend::ErrorStatus &aCalenderError) const
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
     CalendarStorage::OperationStatus iStorageStatus = STATUS_OK;
 
     switch(aCalenderError) {

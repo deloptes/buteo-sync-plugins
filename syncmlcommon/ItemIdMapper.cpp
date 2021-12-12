@@ -23,35 +23,35 @@
 
 #include "ItemIdMapper.h"
 
-#include <LogMacros.h>
+#include "SyncMLPluginLogging.h"
 
 const QString CONNECTIONNAME( "idmapper" );
 
 ItemIdMapper::ItemIdMapper() :
     iNextValue(1)
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 }
 
 ItemIdMapper::~ItemIdMapper()
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 }
 
 bool ItemIdMapper::init( const QString& aDbFile, const QString& aStorageId )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     static unsigned connectionNumber = 0;
 
-    LOG_DEBUG( "Initiating ID mapper..." );
+    qCDebug(lcSyncMLPlugin) << "Initiating ID mapper...";
 
     if( !iDb.isOpen() ) {
         iConnectionName = CONNECTIONNAME + QString::number( connectionNumber++ );
         iDb = QSqlDatabase::addDatabase( "QSQLITE", iConnectionName );
         iDb.setDatabaseName( aDbFile );
         if(!iDb.open()) { //CID 29154
-            LOG_CRITICAL( "Could open ID database file:" << aDbFile );
+            qCCritical(lcSyncMLPlugin) << "Could open ID database file:" << aDbFile;
             return false;
         }
     }
@@ -67,7 +67,7 @@ bool ItemIdMapper::init( const QString& aDbFile, const QString& aStorageId )
 
     query = QSqlQuery( queryString, iDb );
     if( !query.exec() ) {
-        LOG_CRITICAL("Create Query failed: " << query.lastError());
+        qCCritical(lcSyncMLPlugin) <<"Create Query failed: " << query.lastError();
         return false;
     }
 
@@ -83,12 +83,12 @@ bool ItemIdMapper::init( const QString& aDbFile, const QString& aStorageId )
         {
             iKeyToValueMap[query.value(0).toString()] = query.value(1).toUInt();
             iValueToKeyMap[query.value(1).toUInt()] = query.value(0).toString();
-            LOG_DEBUG("Mapped key " << query.value(0).toString() << " and value " << query.value(1).toString());
+            qCDebug(lcSyncMLPlugin) << "Mapped key " << query.value(0).toString() << " and value " << query.value(1).toString();
         }
         iNextValue = iKeyToValueMap.count() + 1;
     }
 
-    LOG_DEBUG( "ID mapper initiated" );
+    qCDebug(lcSyncMLPlugin) << "ID mapper initiated";
     return true;
 
 }
@@ -96,9 +96,9 @@ bool ItemIdMapper::init( const QString& aDbFile, const QString& aStorageId )
 
 void ItemIdMapper::uninit()
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
-    LOG_DEBUG( "Uninitiating ID mapper..." );
+    qCDebug(lcSyncMLPlugin) << "Uninitiating ID mapper...";
 
     {
         QString queryString;
@@ -107,7 +107,7 @@ void ItemIdMapper::uninit()
         bool supportsTransaction = iDb.transaction();
         if( !supportsTransaction )
         {
-            LOG_DEBUG("Db doesn't support transactions");
+            qCDebug(lcSyncMLPlugin) << "Db doesn't support transactions";
         }
 
         queryString.append( "DELETE FROM " );
@@ -115,7 +115,7 @@ void ItemIdMapper::uninit()
         query = QSqlQuery( queryString, iDb );
         if( !query.exec() )
         {
-            LOG_WARNING("Delete Query failed: " << query.lastError());
+            qCWarning(lcSyncMLPlugin) << "Delete Query failed: " << query.lastError();
         }
 
         queryString.clear();
@@ -133,14 +133,14 @@ void ItemIdMapper::uninit()
         query.addBindValue( keys );
         if( !query.execBatch() )
         {
-            LOG_CRITICAL("Save Query failed: " << query.lastError());
+            qCCritical(lcSyncMLPlugin) <<"Save Query failed: " << query.lastError();
         }
 
         if( supportsTransaction )
         {
             if( !iDb.commit() )
             {
-                LOG_CRITICAL("Commit failed");
+                qCCritical(lcSyncMLPlugin) <<"Commit failed";
             }
         }
     }
@@ -150,14 +150,14 @@ void ItemIdMapper::uninit()
 
     iNextValue = 1;
 
-    LOG_DEBUG( "ID mapper uninitiated" );
+    qCDebug(lcSyncMLPlugin) << "ID mapper uninitiated";
 
 }
 
 
 QString ItemIdMapper::key( const QString& aValue )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     // NB#153991:In case SyncML stack asks for empty key, we shouldn't treat
     // it as an error situation, rather just not do mapping in that case.
@@ -165,7 +165,7 @@ QString ItemIdMapper::key( const QString& aValue )
     QString key = aValue;
 
     if( !iValueToKeyMap.contains( aValue.toUInt() ) ) {
-        LOG_DEBUG("Value is empty, mapping not done");
+        qCDebug(lcSyncMLPlugin) << "Value is empty, mapping not done";
     }
     else {
         key = iValueToKeyMap.value( aValue.toUInt() );
@@ -177,7 +177,7 @@ QString ItemIdMapper::key( const QString& aValue )
 
 QString ItemIdMapper::value( const QString& aKey )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     QString value = aKey;
 
@@ -187,7 +187,7 @@ QString ItemIdMapper::value( const QString& aKey )
     Q_UNUSED(id);
 
     if (aKey.isEmpty()) {
-        LOG_WARNING("Key is empty. Not trying to do mapping");
+        qCWarning(lcSyncMLPlugin) << "Key is empty. Not trying to do mapping";
     }
     else if( !keyIsInt ) {
         if( !iKeyToValueMap.contains( aKey ) )

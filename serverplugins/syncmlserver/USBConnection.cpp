@@ -21,7 +21,7 @@
 */
 #include "USBConnection.h"
 
-#include <LogMacros.h>
+#include "SyncMLPluginLogging.h"
 #include <QDateTime>
 
 #include <fcntl.h>
@@ -41,12 +41,12 @@ USBConnection::USBConnection () :
     mReadNotifier (0), mWriteNotifier (0), mExceptionNotifier (0)
 #endif
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 }
 
 USBConnection::~USBConnection ()
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
 #ifdef GLIB_FD_WATCH
     // Make sure glibc does not try to deliver more events to us.
@@ -74,13 +74,13 @@ USBConnection::~USBConnection ()
 int
 USBConnection::connect ()
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     QMutexLocker lock (&mMutex);
 
     if (isConnected ())
     {
-        LOG_DEBUG ("Already connected. Returning fd");
+        qCDebug(lcSyncMLPlugin) << "Already connected. Returning fd";
     } else
     {
         mFd = openUSBDevice ();
@@ -94,7 +94,7 @@ USBConnection::connect ()
 void
 USBConnection::disconnect ()
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     QMutexLocker lock (&mMutex);
 
@@ -110,7 +110,7 @@ USBConnection::disconnect ()
 bool
 USBConnection::isConnected () const
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
     if (mFd == -1)
         return false;
     else
@@ -120,12 +120,12 @@ USBConnection::isConnected () const
 int
 USBConnection::openUSBDevice ()
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     QMutexLocker lock (&mMutex);
 
     if (isConnected ()) {
-        LOG_WARNING ("USB connection already open with fd " << mFd);
+        qCWarning(lcSyncMLPlugin) << "USB connection already open with fd " << mFd;
         return mFd;
     }
 
@@ -135,7 +135,7 @@ USBConnection::openUSBDevice ()
                    O_RDWR | O_NOCTTY);
 
     if (mFd < 0) {
-        LOG_WARNING ("Count not open USB device");
+        qCWarning(lcSyncMLPlugin) << "Count not open USB device";
         return -1;
     }
 
@@ -151,7 +151,7 @@ USBConnection::openUSBDevice ()
     int arg = fcntl (mFd, F_GETFL);
     if (arg < 0)
     {
-        LOG_WARNING ("Unable to get file attributes");
+        qCWarning(lcSyncMLPlugin) << "Unable to get file attributes";
         close (mFd);
         return -1;
     }
@@ -159,25 +159,25 @@ USBConnection::openUSBDevice ()
     arg |= O_NONBLOCK;
     if (fcntl (mFd, F_SETFL, arg) < 0)
     {
-        LOG_WARNING ("Could not set file attributes");
+        qCWarning(lcSyncMLPlugin) << "Could not set file attributes";
         close (mFd);
         return -1;
     }
 
-    LOG_DEBUG ("Opened USB device with fd " << mFd);
+    qCDebug(lcSyncMLPlugin) << "Opened USB device with fd " << mFd;
     return mFd;
 }
 
 void
 USBConnection::closeUSBDevice ()
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     QMutexLocker lock (&mMutex);
 
     if (isConnected ())
     {
-        LOG_DEBUG ("Closing USB device with fd " << mFd);
+        qCDebug(lcSyncMLPlugin) << "Closing USB device with fd " << mFd;
 
         shutdown (mFd, SHUT_RDWR);
         close (mFd);
@@ -190,7 +190,7 @@ USBConnection::closeUSBDevice ()
 void
 USBConnection::handleSyncFinished (bool isSyncInError)
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     QMutexLocker lock (&mMutex);
 
@@ -211,7 +211,7 @@ USBConnection::handleSyncFinished (bool isSyncInError)
     {
         // No errors during sync. Just add channel watcher,
         // which was removed at the start of the sync
-        LOG_DEBUG ("Handling sync finished. Adding fd listener");
+        qCDebug(lcSyncMLPlugin) << "Handling sync finished. Adding fd listener";
         addFdListener ();
     }
 }
@@ -219,7 +219,7 @@ USBConnection::handleSyncFinished (bool isSyncInError)
 void
 USBConnection::addFdListener ()
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     QMutexLocker lock (&mMutex);
 
@@ -238,7 +238,7 @@ USBConnection::addFdListener ()
                                                    NULL);
         g_io_channel_unref (mIOChannel);
 
-        LOG_DEBUG ("Added fd listner for fd " << mFd << " with event source " << mFdWatchEventSource);
+        qCDebug(lcSyncMLPlugin) << "Added fd listner for fd " << mFd << " with event source " << mFdWatchEventSource;
 #else
 
         mReadNotifier = new QSocketNotifier (mFd, QSocketNotifier::Read);
@@ -264,7 +264,7 @@ USBConnection::addFdListener ()
 void
 USBConnection::removeFdListener ()
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     QMutexLocker lock (&mMutex);
 
@@ -274,7 +274,7 @@ USBConnection::removeFdListener ()
         gboolean removed = g_source_remove (mFdWatchEventSource);
         if (removed)
         {
-            LOG_DEBUG ("Removed fd listener with event source " << mFdWatchEventSource);
+            qCDebug(lcSyncMLPlugin) << "Removed fd listener with event source " << mFdWatchEventSource;
             mFdWatchEventSource = 0;
         }
     }
@@ -296,7 +296,7 @@ USBConnection::removeFdListener ()
 void
 USBConnection::signalNewSession ()
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     emit usbConnected (mFd);
 }
@@ -329,11 +329,11 @@ USBConnection::idleEventSource ()
 void
 USBConnection::removeEventSource ()
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     if ((mIdleEventSource > 0) && (g_source_remove (mIdleEventSource)))
     {
-        LOG_DEBUG ("Removing idle event source " << mIdleEventSource);
+        qCDebug(lcSyncMLPlugin) << "Removing idle event source " << mIdleEventSource;
         mIdleEventSource = 0;
     }
 }
@@ -341,13 +341,13 @@ USBConnection::removeEventSource ()
 gboolean
 USBConnection::handleIncomingUSBEvent (GIOChannel *ioChannel, GIOCondition condition, gpointer user_data)
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     USBConnection* connection = (USBConnection*) user_data;
 
     int fd = g_io_channel_unix_get_fd (ioChannel);
 
-    LOG_DEBUG ("Channel fd: " << fd);
+    qCDebug(lcSyncMLPlugin) << "Channel fd: " << fd;
 
     if (condition & (G_IO_HUP | G_IO_ERR))
     {
@@ -359,7 +359,7 @@ USBConnection::handleIncomingUSBEvent (GIOChannel *ioChannel, GIOCondition condi
             guint eventSource = connection->idleEventSource ();
             if ((eventSource > 0) && g_source_remove (eventSource))
             {
-                LOG_DEBUG ("Removed event source " << eventSource);
+                qCDebug(lcSyncMLPlugin) << "Removed event source " << eventSource;
                 connection->setIdleEventSource (0);
             }
 
@@ -367,7 +367,7 @@ USBConnection::handleIncomingUSBEvent (GIOChannel *ioChannel, GIOCondition condi
             eventSource = g_idle_add (reopenUSB, connection);
 
             connection->setIdleEventSource (eventSource);
-            LOG_DEBUG ("Added watch on the idle event source " << eventSource);
+            qCDebug(lcSyncMLPlugin) << "Added watch on the idle event source " << eventSource;
         }
 
         // If in error, remove the fd listner and also close the USB device
@@ -390,18 +390,18 @@ USBConnection::handleIncomingUSBEvent (GIOChannel *ioChannel, GIOCondition condi
 gboolean
 USBConnection::reopenUSB (gpointer data)
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     USBConnection* connection = (USBConnection*) data;
 
     if ((connection->mDisconnected == true) && !connection->isConnected ())
     {
-        LOG_DEBUG ("USB Not disconnected and not listening");
+        qCDebug(lcSyncMLPlugin) << "USB Not disconnected and not listening";
         connection->openUSBDevice ();
         connection->addFdListener ();
     } else
     {
-        LOG_DEBUG ("Already listening. No need to reopen");
+        qCDebug(lcSyncMLPlugin) << "Already listening. No need to reopen";
     }
 
     connection->setIdleEventSource (0);
@@ -412,9 +412,9 @@ USBConnection::reopenUSB (gpointer data)
 void
 USBConnection::handleUSBActivated (int fd)
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
-    LOG_DEBUG ("USB is activated. Emitting signal to handle incoming data");
+    qCDebug(lcSyncMLPlugin) << "USB is activated. Emitting signal to handle incoming data";
 
     emit usbConnected (fd);
 
@@ -425,9 +425,9 @@ USBConnection::handleUSBActivated (int fd)
 void
 USBConnection::handleUSBError (int fd)
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
-    LOG_DEBUG ("Error in USB connection");
+    qCDebug(lcSyncMLPlugin) << "Error in USB connection";
 
     removeFdListener ();
     closeUSBDevice ();

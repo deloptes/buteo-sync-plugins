@@ -22,7 +22,7 @@
  */
 
 #include "FolderItemParser.h"
-#include <LogMacros.h>
+#include "SyncMLPluginLogging.h"
 #include <QDomDocument>
 
 static const QString TAG_FOLDER("Folder");
@@ -36,7 +36,7 @@ const QString FolderItemParser::FOLDER_MIME_TYPE("application/vnd.omads-folder+x
 bool FolderItemParser::readFolderData(const QByteArray &aRawData,
     FolderData &aFolderData)
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     QDomDocument doc;
     if (!doc.setContent(aRawData))
@@ -68,7 +68,7 @@ bool FolderItemParser::readFolderData(const QByteArray &aRawData,
 
 QByteArray FolderItemParser::writeFolderData(const FolderData &aFolderData)
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     QDomDocument doc;
     QDomElement root = doc.createElement(TAG_FOLDER);

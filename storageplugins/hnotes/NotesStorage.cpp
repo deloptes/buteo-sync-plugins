@@ -29,7 +29,7 @@
 
 #include <buteosyncfw5/StorageItem.h>
 
-#include <LogMacros.h>
+#include "SyncMLPluginLogging.h"
 
 #include "SyncMLCommon.h"
 #include "SyncMLConfig.h"
@@ -51,18 +51,18 @@ const char* DEFAULT_NOTEBOOK_NAME   = "myNotebook";
 
 NotesStorage::NotesStorage( const QString& aPluginName ) : Buteo::StoragePlugin( aPluginName ), iCommitNow( true )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 }
 
 NotesStorage::~NotesStorage()
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 }
 
 
 bool NotesStorage::init( const QMap<QString, QString>& aProperties )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     iProperties                                = aProperties;
     iProperties[STORAGE_SYNCML_CTCAPS_PROP_11] = getCTCaps( CTCAPSFILENAME11 );
@@ -70,33 +70,33 @@ bool NotesStorage::init( const QMap<QString, QString>& aProperties )
 
     // Use remote name (e.g. bt name) as notebook name.
     if(iProperties.contains(Buteo::KEY_REMOTE_NAME)) {
-        LOG_DEBUG("Using remote name as notebook name");
+        qCDebug(lcSyncMLPlugin) << "Using remote name as notebook name";
         iProperties[STORAGE_NOTEBOOK_PROP] = iProperties.value(Buteo::KEY_REMOTE_NAME);
     }
     else if( iProperties.value( STORAGE_NOTEBOOK_PROP ).isEmpty() ) {
-        LOG_WARNING( STORAGE_NOTEBOOK_PROP << " property not found" <<
+        qCWarning(lcSyncMLPlugin) <<  STORAGE_NOTEBOOK_PROP << " property not found" <<
                      "for notes storage, using default of" <<
-                     DEFAULT_NOTEBOOK_NAME );
+                     DEFAULT_NOTEBOOK_NAME;
         iProperties[STORAGE_NOTEBOOK_PROP] = DEFAULT_NOTEBOOK_NAME;
     }
-    LOG_DEBUG("Initializing notes, notebook name:" <<  iProperties[STORAGE_NOTEBOOK_PROP]); 
+    qCDebug(lcSyncMLPlugin) << "Initializing notes, notebook name:" <<  iProperties[STORAGE_NOTEBOOK_PROP];
 
 
     if( iProperties.value( STORAGE_DEFAULT_MIME_PROP ).isEmpty() ) {
-        LOG_WARNING( STORAGE_DEFAULT_MIME_PROP << "property not found"
-                     << "for notes storage, using default of" << DEFAULT_TYPE );
+        qCWarning(lcSyncMLPlugin) <<  STORAGE_DEFAULT_MIME_PROP << "property not found"
+                     << "for notes storage, using default of" << DEFAULT_TYPE;
         iProperties[STORAGE_DEFAULT_MIME_PROP] = DEFAULT_TYPE;
     }
 
     if( iProperties.value( STORAGE_DEFAULT_MIME_VERSION_PROP ).isEmpty() ) {
-        LOG_WARNING( STORAGE_DEFAULT_MIME_VERSION_PROP << " property not found"
-                     <<"for notes storage, using default of" << DEFAULT_TYPE_VERSION );
+        qCWarning(lcSyncMLPlugin) <<  STORAGE_DEFAULT_MIME_VERSION_PROP << " property not found"
+                     <<"for notes storage, using default of" << DEFAULT_TYPE_VERSION;
         iProperties[STORAGE_DEFAULT_MIME_VERSION_PROP] = DEFAULT_TYPE_VERSION;
     }
 
     if( iProperties.value( STORAGE_NOTEBOOK_PROP ).isEmpty() ) {
-        LOG_WARNING( STORAGE_NOTEBOOK_PROP << " property not found"
-                     << "for notes storage, using default of" << DEFAULT_NOTEBOOK );
+        qCWarning(lcSyncMLPlugin) <<  STORAGE_NOTEBOOK_PROP << " property not found"
+                     << "for notes storage, using default of" << DEFAULT_NOTEBOOK;
         iProperties[STORAGE_NOTEBOOK_PROP] = DEFAULT_NOTEBOOK;
     }
 
@@ -106,7 +106,7 @@ bool NotesStorage::init( const QMap<QString, QString>& aProperties )
 
 bool NotesStorage::uninit()
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     return iBackend.uninit();
 }
@@ -153,7 +153,7 @@ Buteo::StorageItem* NotesStorage::newItem()
 
 QList<Buteo::StorageItem*> NotesStorage::getItems( const QStringList& aItemIdList )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     QList<Buteo::StorageItem*> items;
     QStringListIterator itr( aItemIdList );
@@ -173,7 +173,7 @@ Buteo::StorageItem* NotesStorage::getItem( const QString& aItemId )
 
 Buteo::StoragePlugin::OperationStatus NotesStorage::addItem( Buteo::StorageItem& aItem )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     if( iBackend.addNote( aItem, iCommitNow ) ) {
         return STATUS_OK;
@@ -186,7 +186,7 @@ Buteo::StoragePlugin::OperationStatus NotesStorage::addItem( Buteo::StorageItem&
 
 QList<Buteo::StoragePlugin::OperationStatus> NotesStorage::addItems( const QList<Buteo::StorageItem*>& aItems )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     QList<OperationStatus> results;
 
@@ -206,7 +206,7 @@ QList<Buteo::StoragePlugin::OperationStatus> NotesStorage::addItems( const QList
 
 Buteo::StoragePlugin::OperationStatus NotesStorage::modifyItem( Buteo::StorageItem& aItem )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     if( iBackend.modifyNote( aItem, iCommitNow ) ) {
         return STATUS_OK;
@@ -219,7 +219,7 @@ Buteo::StoragePlugin::OperationStatus NotesStorage::modifyItem( Buteo::StorageIt
 
 QList<Buteo::StoragePlugin::OperationStatus> NotesStorage::modifyItems( const QList<Buteo::StorageItem*>& aItems )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     QList<OperationStatus> results;
 
@@ -239,7 +239,7 @@ QList<Buteo::StoragePlugin::OperationStatus> NotesStorage::modifyItems( const QL
 
 Buteo::StoragePlugin::OperationStatus NotesStorage::deleteItem( const QString& aItemId )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     if( iBackend.deleteNote( aItemId, iCommitNow ) ) {
         return STATUS_OK;
@@ -252,7 +252,7 @@ Buteo::StoragePlugin::OperationStatus NotesStorage::deleteItem( const QString& a
 
 QList<Buteo::StoragePlugin::OperationStatus> NotesStorage::deleteItems( const QList<QString>& aItemIds )
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     QList<OperationStatus> results;
 
@@ -272,7 +272,7 @@ QList<Buteo::StoragePlugin::OperationStatus> NotesStorage::deleteItems( const QL
 
 QDateTime NotesStorage::normalizeTime( const QDateTime& aTime ) const
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     QDateTime normTime = aTime;
 
@@ -288,7 +288,7 @@ QDateTime NotesStorage::normalizeTime( const QDateTime& aTime ) const
 
 QByteArray NotesStorage::getCTCaps( const QString& aFilename ) const
 {
-    FUNCTION_CALL_TRACE;
+    FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
     QFile ctCapsFile( SyncMLConfig::getXmlDataPath() + aFilename  );
     QByteArray ctCaps;
@@ -297,7 +297,7 @@ QByteArray NotesStorage::getCTCaps( const QString& aFilename ) const
        ctCaps = ctCapsFile.readAll();
        ctCapsFile.close();
     } else {
-        LOG_WARNING("Failed to open CTCaps file for notes storage:" << aFilename );
+        qCWarning(lcSyncMLPlugin) << "Failed to open CTCaps file for notes storage:" << aFilename;
     }
 
     return ctCaps;
