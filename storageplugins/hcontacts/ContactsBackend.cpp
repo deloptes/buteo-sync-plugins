@@ -69,7 +69,7 @@ bool ContactsBackend::init()
         FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
 
         QMap<QString, QString> params;
-        params.insert(QStringLiteral("nonprivileged"), QStringLiteral("true"));
+        params.insert(QStringLiteral("privileged"), QStringLiteral("true"));
         iReadMgr = new QContactManager(QLatin1String("org.nemomobile.contacts.sqlite"), params);
 
         iWriteMgr = new QContactManager(QLatin1String("org.nemomobile.contacts.sqlite"));
