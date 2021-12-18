@@ -67,7 +67,6 @@ BTConnection::BTConnection() :
 BTConnection::~BTConnection ()
 {
     FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
-    qCDebug(lcSyncMLPlugin) << "BTConnection::~BTConnection ";
 
     if (mServerReadNotifier) {
         delete mServerReadNotifier;
@@ -118,6 +117,7 @@ BTConnection::~BTConnection ()
         btManager = 0;
     }
 
+    qCDebug(lcSyncMLPlugin) << "BTConnection::~BTConnection done";
 }
 
 void BTConnection::initBluez5ManagerJobResult(BluezQt::InitManagerJob* job)
