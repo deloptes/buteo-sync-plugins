@@ -524,8 +524,8 @@ QByteArray CalendarStorage::getCtCaps( const QString& aFilename ) const
 
 }
 
-CalendarStorage::OperationStatus CalendarStorage::mapErrorStatus\
-        (const CalendarBackend::ErrorStatus &aCalenderError) const
+CalendarStorage::OperationStatus CalendarStorage::mapErrorStatus(
+        const CalendarBackend::ErrorStatus &aCalenderError) const
 {
     FUNCTION_CALL_TRACE(lcSyncMLPluginTrace);
     CalendarStorage::OperationStatus iStorageStatus = STATUS_OK;
