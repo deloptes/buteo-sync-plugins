@@ -455,7 +455,7 @@ QList<ContactStorage::OperationStatus> ContactStorage::modifyItems(const QList<B
                 if(contactsErrorMap.size()  != contactsList.size())
                 {
 
-                    qCWarning(lcSyncMLPlugin) << "Something Wrong with Batch Mofication in Contacts Backend";
+                    qCWarning(lcSyncMLPlugin) << "Something Wrong with Batch Modification in Contacts Backend";
                         qCDebug(lcSyncMLPlugin) << "contactsErrroMap.size() " << contactsErrorMap.size();
                         qCDebug(lcSyncMLPlugin) << "contactsList.size()" << contactsList.size();
                         for ( int i = 0; i < aItems.size(); i++) {
@@ -764,8 +764,8 @@ QByteArray ContactStorage::getCtCaps( const QString& aFilename ) const
     return ctCaps;
 }
 
-ContactStorage::OperationStatus ContactStorage::mapErrorStatus\
-(const QContactManager::Error &aContactError) const
+ContactStorage::OperationStatus ContactStorage::mapErrorStatus(
+        const QContactManager::Error &aContactError) const
 {
         ContactStorage::OperationStatus iStorageStatus = STATUS_ERROR;
         switch(aContactError) {
